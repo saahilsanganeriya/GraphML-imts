@@ -1,0 +1,24 @@
+\xhdr{Datasets}
+Below we briefly overview healthcare and human activity datasets. 
+(1) \textbf{P19}~\citep{Reyna:2020} includes 38,803 patients that are monitored by 34 sensors. Each patient is associated with a binary label representing the occurrence of sepsis.
+(2) \textbf{P12}~\citep{Goldberger:2000} records temporal measurements of 36 sensors of 11,988 patients in the first 48-hour stay in ICU. The samples are labeled based on hospitalization length.
+(3) \textbf{PAM}~\citep{ReissStricker:2012} contains 5,333 segments from 8 activities of daily living that are measured by 17 sensors. 
+Details are in Appendix~\ref{SI:dataset}.
+
+
+\xhdr{Baselines}
+We compare \model with five state-of-the-art baselines:
+\textit{Transformer}~\citep{vaswani2017attention}, \textit{Trans-mean}, \textit{GRU-D}~\citep{GRU-D}, \textit{SeFT}~\citep{SeFT_paper}, and \textit{mTAND}~\citep{mTAND_paper}.
+The \textit{Trans-mean} is an imputation method combining transformer architecture with commonly used average interpolation (\ie, missing values are replaced by average observations in each sensor). 
+The \textit{mTAND}~\citep{mTAND_paper} method has been shown to outperform numerous recurrent models including \textit{RNN-Impute}~\citep{GRU-D}, \textit{RNN-Simple}, and \textit{Phased-LSTM}~\citep{phasedLSTM}, along with ordinary differential equations (ODE)-based models such as \textit{LATENT-ODE} and \textit{ODE-RNN}~\citep{LatentODE}. 
+For this reason, we compare with \textit{mTAND} and do not report comparison with those techniques in this paper. 
+Even though, to better show the superiority of \model, we provide extensive comparison with popular approaches, such as DGM$^2$-O~\citep{wu2021dynamic} and MTGNN~\citep{wu2020connecting}, that are designed for forecasting tasks.
+Further details are in Table~\ref{tab:setting1} and Appendix~\ref{SI:baseline_comparison}. 
+Details on hyperparameter selection and baselines are in Appendix~\ref{app:hyper_parameter}, and evaluation metrics are presented in Appendix~\ref{SI:metrics}.
+
+
+
+
+
+
+

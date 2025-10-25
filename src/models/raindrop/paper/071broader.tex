@@ -1,0 +1,13 @@
+\section*{Reproducibility Statement}
+We ensure the reproducibility of our work by clearly presenting the model and providing publicly accessible code and data. For all datasets used in this work, we share downloadable links to the raw sources and processed and ready-to-run datasets with the research community through this link: \url{https://github.com/mims-harvard/Raindrop}.
+We specify all training details (e.g., preprocessing, data splits, hyperparameters, sensor selection) in the main text and Appendix. 
+Python implementation of \model and all baseline methods is available at the aforementioned link. Detailed description of data, scripts, and configurations along with examples of usage are also provided.
+
+\section*{Ethics Statement}
+
+The ability of \model to learn robust information about sensors' representations and dependencies creates new opportunities for applications, where time series are predominant, \eg, in healthcare, biology, and finance. In all these fields, especially in healthcare applications, our method should be used with caution. Although our model can gain valuable insights from time series, users must consider the limitations of machine-guided predictions. As with all data-driven solutions, our model may make biased predictions.
+In the case of biomedical data, biases can exist within the data itself, which can be, for example, caused by considering demographic attributes, such as age, weight, and gender, that might correlate with protected/regulated attributes. When target classes are highly imbalanced, our model can mitigate the issues by upsampling minority classes in every processed batch.
+
+All datasets in this paper are publicly available and are not associated with any privacy or security concern. Further, all data are anonymized to guard against breaching patients' protected health information. We followed PhysioNet privacy policy and guidelines (\url{https://archive.physionet.org/privacy.shtml}) when experimenting with P12 and P19 datasets. 
+
+

@@ -1,0 +1,136 @@
+
+
+
+
+\subsection{Results across Diverse Evaluation Settings}\label{sec:multitude}
+
+\xhdr{Setting 1: Classic time series classification}
+\underline{Setup.}
+We randomly split the dataset into training (80\%), validation (10\%), and test (10\%) set. 
+The indices of these splits are fixed across all methods.
+\underline{Results.}
+As shown in Table~\ref{tab:setting1}, \model obtains the best performance across three benchmark datasets, suggesting its strong performance for time series classification.
+In particular, in binary classification (P19 and P12), \model outperforms the strongest baselines by 5.3\% in AUROC and 4.8\% in AUPRC on average. In a more challenging 8-way classification on the PAM dataset, \model outperforms existing approaches by 5.7\% in accuracy and 5.5\% in F1 score.
+Further exploratory analyses and benchmarking results are shown in Appendix~\ref{SI:missing_pattern}-\ref{SI:LSTM}.
+
+
+\begin{table}[!htb]
+\scriptsize
+\centering
+\caption{Method benchmarking on irregularly sampled time series classification (Setting 1). }
+\vspace{-3mm}
+\label{tab:setting1}
+\resizebox{\textwidth}{!}{ 
+\begin{tabular}{lll|ll|llllHH}
+\toprule
+& \multicolumn{2}{c|}{P19} & \multicolumn{2}{c|}{P12} & \multicolumn{6}{c}{PAM} \\ \cmidrule{2-11}
+\multirow{-2}{*}{Methods} & AUROC & AUPRC & AUROC & AUPRC & Accuracy & Precision & Recall & F1 score & AUROC & AUPRC \\ \midrule
+Transformer & 83.2 $\pm$ 1.3 & 47.6 $\pm$ 3.8 & 65.1 $\pm$ 5.6 &  95.7 $\pm$ 1.6 & 83.5 $\pm$ 1.5 & 84.8 $\pm$ 1.5 & 86.0 $\pm$ 1.2 & 85.0 $\pm$ 1.3 & 97.5 $\pm$ 0.3 & 90.6 $\pm$ 1.1 \\
+Trans-mean & 84.1 $\pm$ 1.7 &	47.4 $\pm$ 1.4&	66.8 $\pm$ 4.2&	95.9 $\pm$ 1.1&	83.7 $\pm$ 2.3&	84.9 $\pm$ 2.6&	86.4 $\pm$ 2.1&	85.1 $\pm$ 2.4\\
+GRU-D & 83.9 $\pm$1.7 & 46.9 $\pm$ 2.1 & 67.2 $\pm$ 3.6 & 95.9 $\pm$ 2.1 & 83.3 $\pm$ 1.6 & 84.6 $\pm$ 1.2 & 85.2 $\pm$ 1.6 & 84.8 $\pm$ 1.2 & 91.3 $\pm$ 1.6 & 74.9 $\pm$ 0.9 \\
+SeFT & 78.7 $\pm$ 2.4 & 31.1 $\pm$ 2.8 & 66.8 $\pm$ 0.8 & 96.2 $\pm$ 0.2 & 67.1 $\pm$ 2.2 & 70.0 $\pm$ 2.4 & 68.2 $\pm$ 1.5 & 68.5 $\pm$ 1.8 & 93.0 $\pm$ 0.6 & 75.1 $\pm$ 1.8 \\
+mTAND & 80.4 $\pm$ 1.3 & 32.4 $\pm$ 1.8 & 65.3 $\pm$ 1.7 & 96.5 $\pm$ 1.2 & 74.6 $\pm$ 4.3 & 74.3 $\pm$ 4.0 & 79.5 $\pm$ 2.8 & 76.8 $\pm$ 3.4 & 90.7 $\pm$ 0.9 & 71.3 $\pm$ 4.3 \\ 
+IP-Net & 84.6 $\pm$ 1.3 & 38.1 $\pm$ 3.7 & 72.5 $\pm$ 2.4 & 96.7 $\pm$ 0.3 & 74.3 $\pm$ 3.8 & 75.6 $\pm$ 2.1 & 77.9 $\pm$ 2.2 & 76.6 $\pm$ 2.8 \\
+DGM$^2$-O & 86.7 $\pm$ 3.4 & 44.7 $\pm$ 11.7 & 71.2 $\pm$ 2.5  & 96.9 $\pm$ 0.4 & 82.4 $\pm$ 2.3 &  85.2 $\pm$ 1.2 & 83.9 $\pm$ 2.3 & 84.3 $\pm$ 1.8 \\
+MTGNN &81.9 $\pm$ 6.2  & 39.9 $\pm$ 8.9  & 67.5 $\pm$ 3.1 &  96.4 $\pm$ 0.7 & 83.4 $\pm$ 1.9 & 85.2 $\pm$ 1.7 & 86.1 $\pm$ 1.9 & 85.9 $\pm$ 2.4 \\
+\midrule
+\textbf{\model} &\textbf{87.0 $\pm$ 2.3} &\textbf{51.8 $\pm$ 5.5} & \textbf{72.1 $\pm$ 1.3} & \textbf{97.0 $\pm$ 0.4} & \textbf{88.5 $\pm$ 1.5} & \textbf{89.9 $\pm$ 1.5} & \textbf{89.9 $\pm$ 0.6} & \textbf{89.8 $\pm$ 1.0} & \textbf{98.4 $\pm$ 0.2} & \textbf{94.5 $\pm$ 0.5} \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+
+\xhdr{Setting 2: Leave-fixed-sensors-out}
+\underline{Setup.}
+\model can compensate for missing sensor observations by exploiting dependencies between sensors. 
+To this end, we test whether \model can 
+achieve good performance when a subset of sensors are completely missing. This setting is practically relevant in situations when, for example, sensors fail or are unavailable.
+We select a fraction of sensors and hide all their observations in both validation and test sets (training samples are not changed). In particular, we leave out the most informative sensors as defined by information gain analysis (Appendix~\ref{SI:setting2_setup}). The left-out sensors are fixed across samples and models.
+\underline{Results.}
+We report results taking PAM as an example. 
+In Table~\ref{tab:setting2_3_PAM} (left block), we observe that \model achieves top performance in 18 out of 20 settings when the number of left-out sensors goes from 10\% to 50\%. %
+With the increased amount of missing data, \model yield greater performance improvements. \model outperforms baselines
+by up to 24.9\% in accuracy, 50.3\% in precision, 29.3\% in recall, and 42.8\% in F1 score.
+
+
+
+\xhdr{Setting 3: Leave-random-sensors-out}
+\underline{Setup.}
+Setting 3 is similar to Setting 2 except 
+that left-out sensors are randomly selected in each sample instead of being fixed. 
+In each test sample, we  select a subset of sensors and regard them as missing by replacing all of their observations with zeros.
+\underline{Results.} 
+We provide results for the PAM dataset in Table~\ref{tab:setting2_3_PAM} (right block). We find that \model achieves better performance than baselines in 16 out of 20 settings and that Trans-mean and GRU-D are the strongest competitors. 
+Further, we evaluated \model in another setting where the model is trained on one group of samples (\eg, females) and tested on another group not seen during training (\eg, males). Experimental setup and results are detailed in Appendix~\ref{SI:group_wise_TSC}.
+
+
+
+
+
+\begin{table}[!htb]
+\scriptsize
+\centering
+\caption{Classification performance on samples with a fixed set of left-out sensors (Setting 2) or random missing sensors (Setting 3) on the PAM dataset. Results for P19 dataset (Settings 2-3) are shown in Appendix~\ref{SI:results23_P19}.}
+\vspace{-3mm}
+\label{tab:setting2_3_PAM}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{cl|llll|llll}
+\toprule
+\multicolumn{1}{c}{\multirow{2}{*}{\begin{tabular}[c]{@{}l@{}}Missing \\ sensor ratio\end{tabular}}}  & \multirow{2}{*}{Methods} & \multicolumn{4}{c|}{PAM (Setting 2: leave-\textbf{fixed}-sensors-out)} & \multicolumn{4}{c}{PAM (Setting 3: leave-\textbf{random}-sensors-out)} \\ \cmidrule{3-10}
+\multicolumn{1}{l}{} &  & Accuracy & Precision & Recall & F1 score & Accuracy & Precision & Recall & F1 score \\ \midrule
+\multirow{5}{*}{10\%} & Transformer & 60.3 $\pm$ 2.4 & 57.8 $\pm$ 9.3 & 59.8 $\pm$ 5.4 & 57.2 $\pm$ 8.0 & 60.9 $\pm$ 12.8 & 58.4 $\pm$ 18.4 & 59.1 $\pm$ 16.2 & 56.9 $\pm$ 18.9 \\
+ & Trans-mean & 60.4 $\pm$ 11.2&	61.8 $\pm$ 14.9&	60.2 $\pm$ 13.8&	58.0 $\pm$ 15.2&	62.4 $\pm$ 3.5&	59.6 $\pm$ 7.2&	63.7 $\pm$ 8.1&	62.7 $\pm$ 6.4 \\
+ & GRU-D & 65.4 $\pm$ 1.7 & 72.6 $\pm$ 2.6 & 64.3 $\pm$ 5.3 & 63.6 $\pm$ 0.4 & 68.4 $\pm$ 3.7 & 74.2 $\pm$ 3.0 & 70.8 $\pm$ 4.2 & 72.0 $\pm$ 3.7 \\
+ & SeFT & 58.9 $\pm$ 2.3 & 62.5 $\pm$ 1.8 & 59.6 $\pm$ 2.6 & 59.6 $\pm$ 2.6 & 40.0 $\pm$ 1.9 & 40.8 $\pm$ 3.2 & 41.0 $\pm$ 0.7 & 39.9 $\pm$ 1.5 \\
+ & mTAND & 58.8 $\pm$ 2.7 & 59.5 $\pm$ 5.3 & 64.4 $\pm$ 2.9 & 61.8 $\pm$ 4.1 & 53.4 $\pm$ 2.0 & 54.8 $\pm$ 2.7 & 57.0 $\pm$ 1.9 & 55.9 $\pm$ 2.2 \\
+ & \model & \textbf{77.2 $\pm$ 2.1} & \textbf{82.3 $\pm$ 1.1} & \textbf{78.4 $\pm$ 1.9} & \textbf{75.2 $\pm$ 3.1} & \textbf{76.7 $\pm$ 1.8} & \textbf{79.9 $\pm$ 1.7} & \textbf{77.9 $\pm$ 2.3} & \textbf{78.6 $\pm$ 1.8} \\ \midrule
+\multirow{5}{*}{20\%} & Transformer & 63.1 $\pm$ 7.6 & 71.1 $\pm$ 7.1 & 62.2 $\pm$ 8.2 & 63.2 $\pm$ 8.7 & 62.3 $\pm$ 11.5 & 65.9 $\pm$ 12.7 & 61.4 $\pm$ 13.9 & 61.8 $\pm$ 15.6 \\
+ & Trans-mean & 61.2 $\pm$ 3.0&	\textbf{74.2 $\pm$ 1.8}&	63.5 $\pm$ 4.4&	64.1 $\pm$ 4.1&	56.8 $\pm$ 4.1&	59.4 $\pm$ 3.4&	53.2 $\pm$ 3.9&	55.3 $\pm$ 3.5 \\
+ & GRU-D & 64.6 $\pm$ 1.8 & 73.3 $\pm$ 3.6 & 63.5 $\pm$ 4.6 & 64.8 $\pm$ 3.6 & 64.8 $\pm$ 0.4 & 69.8 $\pm$ 0.8 & 65.8 $\pm$ 0.5 & 67.2 $\pm$ 0.0 \\
+ & SeFT & 35.7 $\pm$ 0.5 & 42.1 $\pm$ 4.8 & 38.1 $\pm$ 1.3 & 35.0 $\pm$ 2.2 & 34.2 $\pm$ 2.8 & 34.9 $\pm$ 5.2 & 34.6 $\pm$ 2.1 & 33.3 $\pm$ 2.7 \\
+ & mTAND & 33.2 $\pm$ 5.0 & 36.9 $\pm$ 3.7 & 37.7 $\pm$ 3.7 & 37.3 $\pm$ 3.4 & 45.6 $\pm$ 1.6 & 49.2 $\pm$ 2.1 & 49.0 $\pm$ 1.6 & 49.0 $\pm$ 1.0 \\
+ & \model & \textbf{66.5 $\pm$ 4.0} & 72.0 $\pm$ 3.9 & \textbf{67.9 $\pm$ 5.8} & \textbf{65.1 $\pm$ 7.0} & \textbf{71.3 $\pm$ 2.5} & \textbf{75.8 $\pm$ 2.2} & \textbf{72.5 $\pm$ 2.0} & \textbf{73.4 $\pm$ 2.1} \\ \midrule
+\multirow{5}{*}{30\%} & Transformer & 31.6 $\pm$ 10.0 & 26.4 $\pm$ 9.7 & 24.0 $\pm$ 10.0 & 19.0 $\pm$ 12.8 & 52.0 $\pm$ 11.9 & 55.2 $\pm$ 15.3 & 50.1 $\pm$ 13.3 & 48.4 $\pm$ 18.2 \\
+ & Trans-mean &  42.5 $\pm$ 8.6&	45.3 $\pm$ 9.6&	37.0 $\pm$ 7.9&	33.9 $\pm$ 8.2&	\textbf{65.1 $\pm$ 1.9}&	63.8 $\pm$ 1.2&	\textbf{67.9 $\pm$ 1.8}&	\textbf{64.9 $\pm$ 1.7}\\
+ & GRU-D & 45.1 $\pm$ 2.9 & 51.7 $\pm$ 6.2 & 42.1 $\pm$ 6.6 & 47.2 $\pm$ 3.9 & 58.0 $\pm$ 2.0 & 63.2 $\pm$ 1.7 & 58.2 $\pm$ 3.1 & 59.3 $\pm$ 3.5 \\
+ & SeFT & 32.7 $\pm$ 2.3 & 27.9 $\pm$ 2.4 & 34.5 $\pm$ 3.0 & 28.0 $\pm$ 1.4 & 31.7 $\pm$ 1.5 & 31.0 $\pm$ 2.7 & 32.0 $\pm$ 1.2 & 28.0 $\pm$ 1.6 \\
+ & mTAND & 27.5 $\pm$ 4.5 & 31.2 $\pm$ 7.3 & 30.6 $\pm$ 4.0 & 30.8 $\pm$ 5.6 & 34.7 $\pm$ 5.5 & 43.4 $\pm$ 4.0 & 36.3 $\pm$ 4.7 & 39.5 $\pm$ 4.4 \\
+ & \model & \textbf{52.4 $\pm$ 2.8} & \textbf{60.9 $\pm$ 3.8} & \textbf{51.3 $\pm$ 7.1} & \textbf{48.4 $\pm$ 1.8} & 60.3 $\pm$ 3.5 & \textbf{68.1 $\pm$ 3.1} & 60.3 $\pm$ 3.6 & 61.9 $\pm$ 3.9 \\ \midrule
+\multirow{5}{*}{40\%} & Transformer & 23.0 $\pm$ 3.5 & 7.4 $\pm$ 6.0 & 14.5 $\pm$ 2.6 & 6.9 $\pm$ 2.6 & 43.8 $\pm$ 14.0 & 44.6 $\pm$ 23.0 & 40.5 $\pm$ 15.9 & 40.2 $\pm$ 20.1 \\
+ & Trans-mean &  25.7 $\pm$ 2.5&	9.1 $\pm$ 2.3&	18.5 $\pm$ 1.4&	9.9 $\pm$ 1.1&	48.7 $\pm$ 2.7&	55.8 $\pm$ 2.6&	54.2 $\pm$ 3.0&	55.1 $\pm$ 2.9\\
+ & GRU-D & 46.4 $\pm$ 2.5 & \textbf{64.5 $\pm$ 6.8} & 42.6 $\pm$ 7.4 & 44.3 $\pm$ 7.9 & 47.7 $\pm$ 1.4 & 63.4 $\pm$ 1.6 & 44.5 $\pm$ 0.5 & 47.5 $\pm$ 0.0 \\
+ & SeFT & 26.3 $\pm$ 0.9 & 29.9 $\pm$ 4.5 & 27.3 $\pm$ 1.6 & 22.3 $\pm$ 1.9 & 26.8 $\pm$ 2.6 & 24.1 $\pm$ 3.4 & 28.0 $\pm$ 1.2 & 23.3 $\pm$ 3.0 \\
+ & mTAND & 19.4 $\pm$ 4.5 & 15.1 $\pm$ 4.4 & 20.2 $\pm$ 3.8 & 17.0 $\pm$ 3.4 & 23.7 $\pm$ 1.0 & 33.9 $\pm$ 6.5 & 26.4 $\pm$ 1.6 & 29.3 $\pm$ 1.9 \\
+ & \model & \textbf{52.5 $\pm$ 3.7} & 53.4 $\pm$ 5.6 & \textbf{48.6 $\pm$ 1.9} & \textbf{44.7 $\pm$  3.4} & \textbf{57.0 $\pm$ 3.1} & \textbf{65.4 $\pm$ 2.7} & \textbf{56.7 $\pm$ 3.1} & \textbf{58.9 $\pm$ 2.5} \\ \midrule
+\multirow{5}{*}{50\%} & Transformer & 21.4 $\pm$ 1.8 & 2.7 $\pm$ 0.2 & 12.5 $\pm$ 0.4 & 4.4 $\pm$ 0.3 & 43.2 $\pm$ 2.5 & 52.0 $\pm$ 2.5 & 36.9 $\pm$ 3.1 & 41.9 $\pm$ 3.2 \\
+ & Trans-mean &21.3 $\pm$ 1.6&	2.8 $\pm$ 0.4	&12.5 $\pm$ 0.7&	4.6 $\pm$ 0.2&	46.4 $\pm$ 1.4&	59.1 $\pm$ 3.2&	43.1 $\pm$ 2.2&	46.5 $\pm$ 3.1  \\
+ & GRU-D & 37.3 $\pm$ 2.7 & 29.6 $\pm$ 5.9 & 32.8 $\pm$ 4.6 & 26.6 $\pm$ 5.9 & \textbf{49.7 $\pm$ 1.2} & 52.4 $\pm$ 0.3 & 42.5 $\pm$ 1.7 & 47.5 $\pm$ 1.2 \\
+ & SeFT & 24.7 $\pm$ 1.7 & 15.9 $\pm$ 2.7 & 25.3 $\pm$ 2.6 & 18.2 $\pm$ 2.4 & 26.4 $\pm$ 1.4 & 23.0 $\pm$ 2.9 & 27.5 $\pm$ 0.4 & 23.5 $\pm$ 1.8 \\
+ & mTAND & 16.9 $\pm$ 3.1 & 12.6 $\pm$ 5.5 & 17.0 $\pm$ 1.6 & 13.9 $\pm$ 4.0 & 20.9 $\pm$ 3.1 & 35.1 $\pm$ 6.1 & 23.0 $\pm$ 3.2 & 27.7 $\pm$ 3.9 \\
+ & \model & \textbf{46.6 $\pm$ 2.6} & \textbf{44.5 $\pm$ 2.6} & \textbf{42.4 $\pm$ 3.9} & \textbf{38.0 $\pm$ 4.0} & 47.2 $\pm$ 4.4 & \textbf{59.4 $\pm$ 3.9} & \textbf{44.8 $\pm$ 5.3} & \textbf{47.6 $\pm$ 5.2} 
+ \\ \bottomrule
+\end{tabular}
+}
+\vspace{-3mm}
+\end{table}
+
+
+
+
+
+
+\subsection{Ablation Study and Visualization of Optimized Sensor Graphs}
+\label{sub:ablation_visual}
+
+\xhdr{Ablation study}
+Considering the PAM dataset and a typical setup (Setting 1), we conduct an ablation study to evaluate how much various \model's components contribute towards its final performance. We examine the following components: inter-sensor dependencies (further decomposed into weights including $e_{i, uv}$, $\bm{r}_v$, $\bm{p}_i^t$, and $\alpha^t_{i, uv}$), temporal attention, and sensor-level concatenation. We show in Appendix~\ref{SI:ablation} (Table~\ref{tab:ablation_study}) that all model components are necessary and that regularization $\mathcal{L}_r$ contributes positively to \model's performance.
+
+\xhdr{Visualizing sensor dependency graphs}
+We investigate whether samples with the same labels get more similar sensor dependency graphs than samples with different labels. To this end, we visualize inter-sensor dependencies (P19; Setting 1) and explore them.
+Figure~\ref{fig:visual} shows distinguishable patterns between graphs of negative and positive samples, indicating that \model can extract relationships that are specific to downstream sample labels. Further differential analysis provides insights that can inform early detection of sepsis from P19 clinical data. Details are in Appendix~\ref{SI:visual}.
+
+
+
+
+

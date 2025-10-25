@@ -1,0 +1,321 @@
+
+\subsection{Encoding Timestamps}
+\label{SI:time_encoding}
+For a given time value $t$, we pass it to trigonometric functions with the frequency of 10,000~\citep{vaswani2017attention} and generate time representation $\bm{p}^t \in \mathbf{R}^{\xi}$ (omit sample index $i$ for brevity) through~\citep{SeFT_paper}:
+\begin{equation}
+   \bm{p}^t_{2k} = \textrm{sin}(\frac{t}{10000^{2k/ \xi}}), \quad
+   \bm{p}^t_{2k+1} = \textrm{cos}(\frac{t}{10000^{2k/ \xi}}),
+\end{equation}
+where $\xi$ is the expected dimension. In this work, we set $\xi =16$ in all experimental settings for all models.
+Please note, we encode the \textit{time value} which is a continuous timestamp, instead of \textit{time position} which is a discrete integer indicating the order of observation in time series.
+
+\subsection{Additional information on the calculation of temporal attention weight}
+\label{SI:parameter_s}
+The Eq.~\ref{eq:self_attention} describes how we learn the temporal attention weights vector $\bm{\beta}_{i,v}$ for sensor $v$, following the self-attention formalism. Different from the standard self-attention mechanism that generates an self-attention matrix, we generate a temporal attention weight vector. The reason is that we only need an attention weight vector (instead of a matrix) to aggregate the observation embeddings into a single sensor embedding through weighted sum.
+
+In the standard self-attention matrix, each element denotes the dependency of an observation embedding on another observation embedding. Similarly, each row describes the dependencies of an observation embedding on all other observation embeddings (all the observations belong to the same sensor). Our intuition is to aggregate a row in the self-attention matrix into a scalar that denotes the importance of the observation embedding to the whole sensor embedding. 
+
+
+
+
+In practice, we apply the weighted aggregation, parameterized by $\bm{s}$, to every row in the self-attention matrix and concatenate the generated scalars into an attention vector. Next, we give a concrete example to specifically describe the meaning of $\bm{s}$. Each row, $j$, of the self-attention matrix captures relationships of observation embedding $\bm{h}^{t_j}_{i, v}$ to all observation embeddings $\{\bm{h}^{t_k}_{i,v}: k=1,...,T\}$. Then, using the learnable weight vector $\bm{s}$, these correlations between observations are aggregated across time to obtain temporal importance weight $\beta^{t_j}_{i, v}$. 
+The $\beta^{t_j}_{i, v}$ represents the importance of the corresponding observation to the whole sensor embedding.
+
+\subsection{Additional information on sample embedding}
+\label{SI:readout}
+As we generate sample embedding by concatenating all sensor embeddings, the sample embedding could be relatively long when there is a large number of sensors. To alleviate this issue, on one hand, we can reduce the dimension of sample embeddings by adding a neural layer (such as a simple fully-connected layer) 
+after the concatenation. On the other hand, when the number of sensors is super large, our model is flexible and can effortlessly switch the concatenation to other readout functions (such as averaging aggregation): this will naturally solve the problem of long vectors.  
+We empirically show that concatenation works better than averaging in our case. We see a boost in the AUROC score by 0.6\% using concatenation instead of averaging for generating sample embeddings(P19; Setting 1). 
+
+
+\subsection{Additional information on sample similarities}
+\label{SI:sample_similarity}
+In this work, we assume all samples share some common characteristics to some extent. When modeling the similarities across samples, we do not consider the situation where the samples are similar within latent groups and different across groups.
+
+Our study focuses on the question of irregularity rather than the question of distribution shifts in time series. To this end, in our experiments, we first rigorously benchmark Raindrop using a standard evaluating setup (Setting 1, which is classification of irregular time series). This is the only setup that most existing methods consider (e.g., \cite{mTAND_paper, GRU-D}) and we want to make sure our comparisons are fair. In order to provide a more rigorous assessment of Raindrop’s performance, we also consider more challenging setups in our experiments (i.e., Settings 2-4) when the dataset is evaluated in a non-standard manner and the split is informed by a select data attribute. Our results on Setting 1 are consistent with those on Settings 2-4. Results on harder Settings 2-4 show that Raindrop can perform comparably better than baselines. Results across these diverse settings increase our confidence that Raindrop is quite flexible and widely applicable. 
+
+
+
+
+\subsection{Further details on datasets}
+\label{SI:dataset}
+
+\xhdr{P19: PhysioNet Sepsis Early Prediction Challenge 2019}
+P19 dataset \citep{Reyna:2020} contains 38,803 patients and each patient is monitored by 34 irregularly sampled sensors including 8 vital signs and 26 laboratory values.
+The original dataset has 40,336 patients, we remove the samples with too short or too long time series, remaining 38,803 patients (the longest time series of the patient has more than one and less than 60 observations). 
+Each patient is associated with a static vector indicating attributes: age, gender, time between hospital admission and ICU admission, ICU type, and ICU length of stay (days). 
+Each patient has a binary label representing occurrence of sepsis within the next 6 hours. 
+The dataset is highly imbalanced with only $\sim$4\% positive samples.
+
+
+\xhdr{P12: PhysioNet Mortality Prediction Challenge 2012} P12 dataset \citep{Goldberger:2000} includes 11,988 patients (samples), after removing 12 inappropriate samples following~\citep{SeFT_paper}. Each patient contains multivariate time series with 36 sensors (excluding weight), which are collected in the first 48-hour stay in ICU. Each sample has a static vector with 9 elements including age, gender, etc.
+Each patient is associated with a binary label indicating length of stay in ICU, where negative label means hospitalization is not longer than 3 days and positive label marks hospitalization is longer than 3 days. P12 is imbalanced with $\sim$93\% positive samples.
+
+
+\xhdr{PAM: PAMAP2 Physical Activity Monitoring}
+PAM dataset~\citep{ReissStricker:2012} measures daily living activities of 9 subjects with 3 inertial measurement units. We modify it to suit our scenario of irregular time series classification. We excluded the ninth subject due to short length of sensor readouts. We segment the continuous signals into samples with the time window of 600 and the overlapping rate of 50\%. PAM originally has 18 activities of daily life. We exclude the ones associated with less than 500 samples, remaining 8 activities. After modification, PAM dataset contains 
+5,333 segments (samples) of sensory signals.
+Each sample is measured by 17 sensors and contains 600 continuous observations with the sampling frequency 100 Hz.
+To make time series irregular, we randomly remove 60\% of observations. To keep fair comparison, the removed observations are randomly selected but kept the same for all experimental settings and approaches. PAM is labelled by 8 classes where each class represents an activity of daily living. PAM does not include static attributes and the samples are approximately balanced across all 8 categories.
+
+
+To feed given data into neural networks, we set the input as zero if no value was measured. In highly imbalanced datasets (P19 and P12) we perform batch minority class upsampling, which means that every processed batch has the same number of positive and negative class samples. The dataset statistics including sparse ratio are provided in Table~\ref{tab:datasets}.
+
+\begin{table}[]
+\centering
+\caption{Dataset statistics. The `\#-timestamps' refers to the number of all sampling timestamps measured in this dataset. The `\#-classes' means the number of categories in dataset labels. The 'Static info' indicates if sample's static attributes (e.g., height and weight) are available. The `missing ratio' denotes the ratio between the number of missing observations and the number of all possible observations if the dataset is fully-observed.}
+\label{tab:datasets}
+\begin{tabular}{lrrrrlr}
+\toprule
+Datasets & \multicolumn{1}{l}{\#-samples} & \multicolumn{1}{l}{\#-sensors} & \multicolumn{1}{l}{\#-timestamps} & \multicolumn{1}{l}{\#-classes} & Static info & \multicolumn{1}{l}{Missing ratio (\%)} \\ \midrule
+P19 & 38,803 & 34 & 60 & 2 & True & 94.9 \\
+P12 & 11,988 & 36 & 215 & 2 & True & 88.4 \\
+PAM & 5,333 & 17 & 600 & 8 & False & 60.0 \\ \bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Further details on model hyperparameters}
+\label{app:hyper_parameter}
+\xhdr{Baseline hyperparameters}
+The implementation of baselines follows the corresponding papers including SeFT~\citep{SeFT_paper}, GRU-D~\citep{GRU-D}, and mTAND~\citep{mTAND_paper}. 
+We follow the settings of Transformer baseline in ~\citep{SeFT_paper} while implementing Transformer in our work. For average imputation in Trans-mean, we replace the missing values by the global mean value of observations in the sensor~\citep{shukla2020survey}. 
+We use batch size of 128 and learning rate of 0.0001. 
+Note that we upsample the minority class in each batch to make the batch balance (64 positive samples and 64 negative samples in each batch).
+
+The chosen hyperparameters are the same across datasets (P19, P12, PAM), models (both baselines and \model), and experimental settings. Remarkably, we found that all the baselines make dummy predictions (classify all testing samples as the majority label) on PAM in Setting 2-3 while \model makes reasonable predictions. For the comparison to make sense (\ie, the baselines can make meaningful predictions), we use learning rate of 0.001 for baselines on PAM. 
+GRU-D has 49 layers while other models have 2 layers.
+We run all models for 20 epochs, store the parameters that obtain the highest AUROC in the validation set, and use it to make predictions for testing samples. We use the Adam algorithm for gradient-based optimization~\citep{adam_optimizer}. 
+
+
+
+\xhdr{\model hyperparameters}
+Next, we report the setting of unique hyperparameters in our \model. In the generation of observation embedding, we set $\bm{R}_u$ as a 4-dimensional vector, thus the produced observation embedding has 4 dimensions. The dimensions of time representation $\bm{p}^t$ and $\bm{r}_v$ are both 16. The trainable weight matrix $\bm{D}$ has shape of $4 \times 32$. The dimensions of $\bm{w}_u$ and $\bm{w}_v$ are the same as the number of sensors: 34 in P19, 36 in P12, and 17 in PAM. We set the number of \model layers $L$ as 2 while the first layer prunes edges and the second layer does not. We set the proportion of edge pruning as 50\% (K=50), which means we remove half of the existing edges that have the lowest weights. The $d_k$ is set to 20, while the shape of $\bm{W}$ is $20 \times 20$. 
+All the activation functions, without specific clarification, are sigmoid functions. The $d_a$ is set equal to the number of sensors.
+The first layer of $\varphi $ has 128 neurons while the second layer has $C$ neurons (\ie, 2 for P19 and P12; 8 for PAM). We set $\lambda=0.02$ to adjust $\mathcal{L}_r$ regularization scale. 
+All the preprocessed datasets and implementation codes are made available online. Further details are available through \model's code and dataset repository. 
+
+\xhdr{Readout function}
+Here we discuss the selection of readout function $g$ in section~\ref{sub:sample_embedding_learning}.
+Our preliminary experiments show that concatenation outperforms other popular aggregation functions such as averaging~\citep{Erricagraph2021} and squeeze-excitation readout function~\citep{kim2021learning,hu2018squeeze}. While any of those aggregation functions can be considered, we used concatenation throughout all experiments in this manuscript.
+
+
+\subsection{Performance metrics}
+\label{SI:metrics}
+
+Since P19 and P12 datasets are imbalanced, we use the Area Under a ROC Curve (AUROC) and Area Under Precision-Recall Curve (AUPRC) to measure performance. 
+As the PAM dataset is nearly balanced, we also report accuracy, precision, recall and F1 score.
+We report mean and standard deviation values over 5 independent runs. 
+Model parameters that achieve the best AUROC value on the validation set are used for test set. 
+
+
+
+\subsection{Further details on Setup details for Setting 2}
+\label{SI:setting2_setup}
+In Setting 2, the selected missing sensors are fixed across different models and chosen in the following way. First, we calculate the importance score for each sensor and rank them in a descending order. The importance score is based on information gain, which we calculate with feeding the observations into a Random Forest classifier with 20 decision trees. 
+In particular, we treat each sample as only having one sensor, then feed the single sensor into random forest classifier and record the AUROC. The higher AUROC indicates the sensor provides higher information gain. When we have sensors ranked by their AUROC values, we choose the first $n$ sensors (the ones with highest AUROC values) and replace all observations in these sensors by zeros in all samples in validation and test set. The number of missing sensors is defined indirectly from the user with the sensors' missing ratio which ranges from 0.1 to 0.5. 
+
+\subsection{Additional information on missing pattern}
+\label{SI:missing_pattern}
+This work propose \model which is a novel solution for irregularity in multivariate time series through inter-sensor dependencies. \model is not in conflict with other solutions (such as missing pattern and temporal decay) for irregularity. However, as the missing pattern is widely discussed in modelling incomplete time series~\citep{GRU-D}, we explore how to combine the advantages of relational structures and missing pattern. We adopt mask matrix as a proxy of missing pattern as in \cite{GRU-D}. Taking the architecture of \model, we concatenate the observation $x^t_{i,u}$ with a binary mask indicator $b^t_{i, u}$ as input. The indicator $b^t_{i, u}$ is set as 1 when there is an observation of sensor $i$ at time $t$ and set as 0 otherwise. All the experimental settings and hyperparameters are the same as in \model (P19; Setting 1). The experimental results show that taking advantage of missing pattern can slightly boost the AUROC by 1.2\% and AUPRC by 0.9\% in P19. This empirically shed the light for future research on integrating multiple characteristics in representation of irregularly time series.
+
+\subsection{Comparison between temporal attention and LSTM}
+\label{SI:LSTM}
+We conduct extensive experiments to compare the effectiveness of temporal attention and LSTM. To this end, we replace the temporal attention in sensor embedding generation (Eq~\ref{eq:self_attention}-\ref{eq:sensor_embedding}) in \model by LSTM layer which processes all observation embeddings sequentially. We use zero padding to convert the irregular observations into fixed-length time series so the data can be fed into LSTM architecture. We regard the last output of LSTM as generated sensor embedding. The number of LSTM cells equal to the dimension of observation embedding. All the model structures are identical except in the part of temporal attention and LSTM. We keep all experimental settings (P19; Setting 1) and hyperparameter selections the same. The experimental results show that the temporal self-attention outperform LSTM by 1.8\% (AUROC) and additionally saved 49\% of the training time. One potential reason is that the self-attention mechanism avoids recursion and allows parallel computation and also reduces performance degradation caused by long-term dependencies~\citep{ganesh2021compressing,vaswani2017attention}. 
+
+\subsection{Additional information on method benchmarking}
+\label{SI:baseline_comparison}
+Taking experimental Setting 1 (\ie, classic time series classification) as an example, we conduct extensive experiments to compare Raindrop with ODE-RNN~\citep{chen2020multi},   DGM$^2$-O~\citep{wu2021dynamic}, EvoNet~\citep{hu2021time}, and MTGNN~\citep{wu2020connecting}. 
+As IP-Net~\citep{IP-Nets} and mTAND~\citep{mTAND_paper} are from the same authors, we only compare with mTAND which is the latest model.
+For the baselines, we follow the settings as provided in their public codes. For methods, which cannot deal with irregular data (\eg, EvoNet and MTGNN), we first impute the missing data using mean imputation and then feed data into the model. For forecasting models (\eg, MTGNN) which are strictly not comparable with the proposed classification model, we formulate the task as a single-step forecasting, concatenate the learned representations from all sensors and feed into a fully-connected layer (work as classifier) to make prediction, and use cross-entropy to quantify the loss.
+
+
+
+\subsection{Results for P19 (Settings 2-3)}
+\label{SI:results23_P19}
+Here we report the experimental results for P19 in Setting 2 (Table~\ref{tab:setting2_P19}) and Setting 3 (Table~\ref{tab:setting3_P19}).
+
+\begin{table}[!htb]
+\centering
+\caption{Classification on samples with fixed missing sensors (P19; Setting 2)}
+\label{tab:setting2_P19}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lll|ll|ll|ll|ll|ll}
+\toprule
+\multirow{3}{*}{Models} & \multicolumn{12}{c}{Missing ratio} \\ \cmidrule{2-13}
+ & \multicolumn{2}{c|}{0\%} & \multicolumn{2}{c|}{10\%} & \multicolumn{2}{c|}{20\%} & \multicolumn{2}{c|}{30\%} & \multicolumn{2}{c|}{40\%} & \multicolumn{2}{c}{50\%} \\ \cmidrule{2-13}
+ & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC \\ \midrule
+Transformer & 83.2 $\pm$ 1.3 & 47.6 $\pm$ 3.8 & 77.4 $\pm$ 3.5 & 38.2 $\pm$ 4.2 & 75.7 $\pm$ 3.4 & 35.2 $\pm$ 5.4 & 75.1 $\pm$ 3.5 & 35.5 $\pm$ 4.4 & 75.3 $\pm$ 3.5 & 36.2 $\pm$ 4.2 & 74.9 $\pm$ 3.1 & 35.5 $\pm$ 5.0 \\
+Trans-mean & 84.1 $\pm$ 1.7&	47.4 $\pm$ 1.4&	79.2 $\pm$ 2.7&	40.6 $\pm$ 5.7&	79.8 $\pm$ 2.5&	38.3 $\pm$ 2.8&	76.9 $\pm$ 2.4&	37.5 $\pm$ 5.9&	76.4 $\pm$ 2.0&	36.3 $\pm$ 5.8&	74.1 $\pm$ 2.3&	41.3 $\pm$ 4.7 \\
+GRU-D & 83.9 $\pm$ 1.7 & 46.9 $\pm$ 2.1 & 79.6 $\pm$ 2.2 & 37.4 $\pm$ 2.5 & 77.5 $\pm$ 3.1 & 36.5 $\pm$ 4.6 & 76.6 $\pm$ 2.9 & 35.1 $\pm$ 2.4 & 74.6 $\pm$ 2.7 & 35.9$\pm$ 2.7 & 74.1 $\pm$ 2.9 & 33.2 $\pm$ 3.8 \\
+SeFT & 78.7 $\pm$ 2.4 & 31.1 $\pm$ 2.8 & 77.3 $\pm$ 2.4 & 25.5 $\pm$ 2.3 & 63.5 $\pm$ 2.0 & 14.0 $\pm$ 1.1 & 62.3 $\pm$ 2.1 & 12.9 $\pm$ 1.2 & 57.8 $\pm$ 1.7 & 9.8 $\pm$ 1.1 & 56.0 $\pm$ 3.1 & 7.8 $\pm$ 1.3 \\
+mTAND & 80.4 $\pm$ 1.3 & 32.4 $\pm$ 1.8 & 79.7 $\pm$ 2.2 & 29.0 $\pm$ 4.3 & 77.8 $\pm$ 1.9 & 25.3 $\pm$ 2.4 & 77.7 $\pm$ 1.9 & 27.8 $\pm$ 2.6 & 79.4 $\pm$ 2.0 & 32.1 $\pm$ 2.1 & 77.3 $\pm$ 2.1 & 27.0 $\pm$ 2.5 \\
+\model & \textbf{87.0 $\pm$ 2.3} & \textbf{51.8 $\pm$ 5.5} & \textbf{84.3 $\pm$ 2.5} & \textbf{46.1 $\pm$ 3.5} & \textbf{81.9 $\pm$ 2.1} & \textbf{45.2 $\pm$ 6.4} & \textbf{81.4 $\pm$ 2.1} & \textbf{43.7 $\pm$ 7.2} & \textbf{81.8 $\pm$ 2.2} & \textbf{44.9 $\pm$ 6.6} & \textbf{79.7 $\pm$ 1.9} & \textbf{43.8 $\pm$ 5.6} \\ 
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+
+
+\begin{table}[!htb]
+\centering
+\caption{Classification on samples with random missing sensors (P19; Setting 3)}
+\label{tab:setting3_P19}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lll|ll|ll|ll|ll|ll}
+\toprule
+\multirow{3}{*}{Models} & \multicolumn{12}{c}{Missing ratio} \\ \cmidrule{2-13}
+ & \multicolumn{2}{c|}{0\%} & \multicolumn{2}{c|}{10\%} & \multicolumn{2}{c|}{20\%} & \multicolumn{2}{c|}{30\%} & \multicolumn{2}{c|}{40\%} & \multicolumn{2}{c}{50\%} \\ \cmidrule{2-13}
+ & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC \\ \midrule
+Transformer & 83.2 $\pm$ 1.3 & 47.6 $\pm$ 3.8 & 82.2 $\pm$ 2.7 & 46.8 $\pm$ 3.5 & 81.6 $\pm$ 3.5 & 42.5 $\pm$ 8.5 & 81.3 $\pm$ 3.1 & 42.1 $\pm$ 4.5 & 80.2 $\pm$ 2.9 & 41.9 $\pm$ 6.8 & 79.2 $\pm$ 1.9 & 43.7 $\pm$ 3.7 \\
+Trans-mean & 84.1 $\pm$ 1.7&	47.4 $\pm$ 1.4&	82.5 $\pm$ 3.7&	44.7 $\pm$ 6.8&	81.7 $\pm$ 2.0&	45.9 $\pm$ 3.6	&81.2 $\pm$ 2.2	&43.2 $\pm$ 6.3&	80.2 $\pm$ 1.7&	41.5 $\pm$ 4.8&	79.8 $\pm$ 3.1&	39.3 $\pm$ 5.1 \\
+GRU-D & 83.9 $\pm$ 1.7 & 46.9 $\pm$ 2.1 & 81.2 $\pm$ 3.4 & 46.4 $\pm$ 2.7 & 78.6 $\pm$ 4.1 & 43.3 $\pm$ 2.4 & 76.3 $\pm$ 2.5 & 28.5 $\pm$ 2.1 & 74.2 $\pm$ 2.7 & 29.6 $\pm$ 3.1 & 74.6 $\pm$ 3.5 & 26.5 $\pm$ 4.2 \\
+SeFT & 78.7 $\pm$ 2.4 & 31.1 $\pm$ 2.8 & 76.8 $\pm$ 2.2 & 28.3 $\pm$ 2.5 & 77.0 $\pm$ 2.2 & 24.1 $\pm$ 2.4 & 75.2 $\pm$ 2.2 & 22.5 $\pm$ 3.0 & 73.6 $\pm$ 2.7 & 18.3 $\pm$ 3.2 & 72.6 $\pm$ 2.5 & 15.7 $\pm$ 1.9 \\
+mTAND & 80.4 $\pm$ 1.3 & 32.4 $\pm$ 1.8 & 75.2 $\pm$ 2.5 & 24.5 $\pm$ 2.4 & 74.4 $\pm$ 3.5 & 24.6 $\pm$ 3.5 & 74.2 $\pm$ 3.2 & 22.6 $\pm$ 2.3 & 74.1 $\pm$ 2.6 & 23.1 $\pm$ 3.6 & 73.9 $\pm$ 3.7 & 24.6 $\pm$ 3.7 \\
+\model & \textbf{87.0 $\pm$ 2.3} & \textbf{51.8 $\pm$ 5.5} & \textbf{85.5 $\pm$ 2.1} & \textbf{50.2 $\pm$ 5.5} & \textbf{83.5 $\pm$ 3.2} & \textbf{47.4 $\pm$ 7.0} & \textbf{83.1 $\pm$ 1.5} & \textbf{48.2 $\pm$ 4.7} & \textbf{82.6 $\pm$ 1.7} & \textbf{48.0 $\pm$ 5.5} & \textbf{80.9 $\pm$ 2.4} & \textbf{45.2 $\pm$ 6.9} \\ 
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+
+\newpage
+
+\subsection{Evaluation on group-wise time series classification} 
+\label{SI:group_wise_TSC}
+To understand whether \model can adaptively adjust its structure and generalize well to other groups of samples which were not observed while training the model. 
+In this setting we split the data into two groups, based on a specific static attribute. The first split attribute is \textit{age}, where we classify people into \textit{young} ($< 65$ years) and \textit{old} ($\geq 65$ years) groups.
+We also split patients into \textit{male} and \textit{female} by \textit{gender} attribute.
+Given the split attribute, we use one group as a train set and randomly split the other group into equally sized validation and test set.
+
+Taking P19 as an example, we present the classification results when the training and testing samples are from different groups. 
+As shown in Table~\ref{tab:setting4}, \model achieves the best results over all of the four given cross-group scenarios.
+For instance, \model claims large margins (with 4.8\% in AUROC and 13.1\% in AUPRC absolute improvement) over the second best model while training on males and testing on female patients.
+
+Although \model is not designed to address domain adaptation explicitly, the results show that \model performs better than baselines when transferring from one group of samples to another. One reason for our good performance is that the learned inter-sensor weights and dependency graphs are sample-specific and their learning is based on the sample’s observations. Thus, the proposed \model has the power, to some extent, to adaptively learn the inter-sensor dependencies based on the test sample’s measurements. \model is not generalizing to new groups, but generalizing to new samples, which leads to a good performance even though our model is not designed for domain adaptation. 
+We validate the reason empirically. We remove the inter-sensor dependencies (set all sensors isolated in the dependency graph; set all $\alpha^t_{i, uv}$ and $e^t_{i, uv}$ as 0) in \model and evaluate the model in group-wise time series classification. The experimental results show that the performance drops a lot when excluding dependency graphs and message passing in \model (Table~\ref{tab:group_wise_classification}). Without inter-sensor dependencies our model is on par with other baselines and does not outperform them by a large margin. 
+
+\begin{table}[!tb]
+\scriptsize
+\centering
+\caption{Comparison of results when excluding dependency graph in \model (P19; Setting 4). The results are the same as in Table~\ref{tab:setting4} except the row of `\model w/o graph', where we do not consider inter-sensor dependencies and set all sensors as independent in the dependency graph. }
+\label{tab:group_wise_classification}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcc|cc|cc|cc}
+\toprule
+\multirow{2}{*}{Model} & \multicolumn{8}{c}{Generalizing to a new patient group} \\ \cmidrule{2-9}
+ & \multicolumn{2}{c|}{Train: Young $\rightarrow$ Test: Old} & \multicolumn{2}{c|}{Train: Old $\rightarrow$ Test: Young} & \multicolumn{2}{c|}{Train: Male $\rightarrow$ Test: Female} & \multicolumn{2}{c}{Train: Female $\rightarrow$ Test: Male} \\  \cmidrule{2-9}
+  & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC \\
+\midrule
+Transformer & 76.2 $\pm$ 0.7 & 30.5 $\pm$ 4.8 & 76.5 $\pm$ 1.1 & 33.7 $\pm$ 5.7 & 77.8 $\pm$ 1.1 & 26.0 $\pm$ 6.2 & 75.2 $\pm$ 1.0 & 30.3 $\pm$ 5.5 \\
+Trans-mean & 80.6 $\pm$ 1.4&	39.8 $\pm$ 4.2&	78.4 $\pm$ 1.1&	35.8 $\pm$ 2.9&	80.2 $\pm$ 1.7&	32.1 $\pm$ 1.9&	76.4 $\pm$ 0.8&	32.5 $\pm$ 3.3 \\
+GRU-D & 76.5 $\pm$ 1.7 & 29.5 $\pm$ 2.3 & 79.6 $\pm$ 1.7 & 35.2 $\pm$ 4.6 & 78.5 $\pm$ 1.6 & 31.9 $\pm$ 4.8 & 76.3 $\pm$ 2.5 & 31.1 $\pm$ 2.6 \\
+SeFT & 77.5 $\pm$ 0.7 & 26.6 $\pm$ 1.2 & 78.9 $\pm$ 1.0 & 32.7 $\pm$ 2.7 & 78.6 $\pm$ 0.6 & 31.1 $\pm$ 1.2 & 76.9 $\pm$ 0.5 & 26.4 $\pm$ 1.1 \\
+mTAND & 79.0 $\pm$ 0.8 & 28.8 $\pm$ 2.3 & 79.4 $\pm$ 0.6 & 29.8 $\pm$ 1.2 & 78.0 $\pm$ 0.9 & 26.5 $\pm$ 1.7 & 78.9 $\pm$ 1.2 & 29.2 $\pm$ 2.0 \\
+\model w/o graph &  80.5 $\pm$ 1.1 & 31.6 $\pm$ 2.1 & 78.5 $\pm$ 0.9 & 36.7 $\pm$ 2.7 &81.3 $\pm$ 1.5 & 36.8 $\pm$ 1.7& 77.5 $\pm$ 1.9 & 33.4 $\pm$ 2.6 \\
+\model & \textbf{83.2 $\pm$ 1.6} & \textbf{43.6 $\pm$ 4.7} & \textbf{82.0 $\pm$ 4.4} & \textbf{44.3 $\pm$ 3.6} & \textbf{85.0 $\pm$ 1.4} & \textbf{45.2 $\pm$ 2.9} & \textbf{81.2 $\pm$ 3.8} & \textbf{40.7 $\pm$ 2.9} \\ \bottomrule
+\end{tabular}
+}
+\end{table}
+
+
+
+
+
+
+\begin{table}[!tb]
+\centering
+\caption{Results of ablation study on the PAM dataset (Setting 1).}
+\label{tab:ablation_study}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{ll|llll}
+\toprule
+\multicolumn{2}{c|}{\model Model} & Accuracy & Precision & Recall & F1 score \\ \midrule
+\multicolumn{2}{l|}{W/o weights vector $\bm{R}_u$} & 81.1 $\pm$ 2.6&	81.9 $\pm$ 2.4& 	80.1 $\pm$ 1.6&	81.6 $\pm$ 2.1  \\  \midrule
+\multirow{4}{*}{W/o inter-sensor dependency} & W/o $e_{i,uv}$ &  82.6 $\pm$ 1.2&	82.9$\pm$ 1.6&	84.3$\pm$ 1.4&	83.8 $\pm$ 1.7  \\ 
+ & W/o $ \bm{r}_v$ & 86.5 $\pm$ 2.4&	83.3 $\pm$ 1.9&	82.6$\pm$ 1.5&	82.9 $\pm$ 1.4 \\
+ & W/o  $\bm{p}_i^t$ &  79.8 $\pm$ 2.7&	80.1 $\pm$ 3.6&	80.6 $\pm$ 1.7&	80.2 $\pm$ 2.9 \\
+ & W/o $ \alpha^t_{i,uv}$ & 85.2 $\pm$ 2.5&	86.4 $\pm$ 2.7&	84.5 $\pm$ 2.9&	85.6 $\pm$ 2.9 \\ \midrule
+\multicolumn{2}{l|}{W/o temporal attention} &  81.5 $\pm$ 1.9&	84.6$\pm$ 1.7	&83.9 $\pm$ 2.5&	84.2 $\pm$ 2.2  \\ \midrule
+\multicolumn{2}{l|}{W/o sensor level concatenation} & 84.4 $\pm$ 2.1 &	86.7$\pm$ 1.1&	85.2$\pm$ 1.9	& 85.8 $\pm$ 2.6 \\  \midrule
+\multicolumn{2}{l|}{W/o regularization term $\mathcal{L}_r$} & 87.3 $\pm$ 2.9&	88.6$\pm$ 3.4&	87.1$\pm$ 2.8&	87.6 $\pm$ 3.1 \\  \midrule
+\multicolumn{2}{l|}{Full \model} & \textbf{88.5$\pm$1.5} & \textbf{89.9$\pm$1.5} & \textbf{89.9$\pm$0.6} & \textbf{89.8$\pm$1.0} \\ \bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[tp]
+\centering
+\subfloat[Negative samples]{%
+  \includegraphics[clip,width=0.49\columnwidth]{FIG/P19_negative_structure.pdf}%
+}
+\hfill
+\subfloat[Positive samples]{%
+  \includegraphics[clip,width=0.49\columnwidth]{FIG/P19_positive_structure.pdf}%
+}
+\caption{Learned structure for negative and positive samples (P19; Setting 1). The nodes numbered from 0 to 33 denote 34 sensors used in P19 (sensor names are listed in Appendix~\ref{SI:visual}). 
+To make the visualized structures easier to understand, we use darker green to denote higher weight value and yellow to denote lower weight value. 
+We can observe distinguishable patterns across two learned sensor dependency graphs, indicating \model is able to adaptively learn graph structures that are sensitive to the classification task. For example, we find that the nodes 1 (pulse oximetry),
+5 (diastolic BP), and 12 (partial pressure of carbon dioxide from arterial blood) have lower weights in negative samples.
+}
+\label{fig:visual}
+\end{figure}
+
+
+
+
+
+\begin{table}[!htb]
+\scriptsize
+\centering
+\caption{Classification results when train and test samples originate from different groups (P19).}
+\vspace{-3mm}
+\label{tab:setting4}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcc|cc|cc|cc}
+\toprule
+\multirow{2}{*}{Model} & \multicolumn{8}{c}{Generalizing to a new patient group} \\ \cmidrule{2-9}
+ & \multicolumn{2}{c|}{Train: Young $\rightarrow$ Test: Old} & \multicolumn{2}{c|}{Train: Old $\rightarrow$ Test: Young} & \multicolumn{2}{c|}{Train: Male $\rightarrow$ Test: Female} & \multicolumn{2}{c}{Train: Female $\rightarrow$ Test: Male} \\  \cmidrule{2-9}
+  & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC & AUROC & AUPRC \\
+\midrule
+Transformer & 76.2 $\pm$ 0.7 & 30.5 $\pm$ 4.8 & 76.5 $\pm$ 1.1 & 33.7 $\pm$ 5.7 & 77.8 $\pm$ 1.1 & 26.0 $\pm$ 6.2 & 75.2 $\pm$ 1.0 & 30.3 $\pm$ 5.5 \\
+Trans-mean & 80.6 $\pm$ 1.4&	39.8 $\pm$ 4.2&	78.4 $\pm$ 1.1&	35.8 $\pm$ 2.9&	80.2 $\pm$ 1.7&	32.1 $\pm$ 1.9&	76.4 $\pm$ 0.8&	32.5 $\pm$ 3.3 \\
+GRU-D & 76.5 $\pm$ 1.7 & 29.5 $\pm$ 2.3 & 79.6 $\pm$ 1.7 & 35.2 $\pm$ 4.6 & 78.5 $\pm$ 1.6 & 31.9 $\pm$ 4.8 & 76.3 $\pm$ 2.5 & 31.1 $\pm$ 2.6 \\
+SeFT & 77.5 $\pm$ 0.7 & 26.6 $\pm$ 1.2 & 78.9 $\pm$ 1.0 & 32.7 $\pm$ 2.7 & 78.6 $\pm$ 0.6 & 31.1 $\pm$ 1.2 & 76.9 $\pm$ 0.5 & 26.4 $\pm$ 1.1 \\
+mTAND & 79.0 $\pm$ 0.8 & 28.8 $\pm$ 2.3 & 79.4 $\pm$ 0.6 & 29.8 $\pm$ 1.2 & 78.0 $\pm$ 0.9 & 26.5 $\pm$ 1.7 & 78.9 $\pm$ 1.2 & 29.2 $\pm$ 2.0 \\
+\model & \textbf{83.2 $\pm$ 1.6} & \textbf{43.6 $\pm$ 4.7} & \textbf{82.0 $\pm$ 4.4} & \textbf{44.3 $\pm$ 3.6} & \textbf{85.0 $\pm$ 1.4} & \textbf{45.2 $\pm$ 2.9} & \textbf{81.2 $\pm$ 3.8} & \textbf{40.7 $\pm$ 2.9} \\ \bottomrule
+\end{tabular}
+}
+\vspace{-3mm}
+\end{table}
+
+\subsection{Further details on ablation study}
+\label{SI:ablation}
+We provide ablation study, taking PAM at Setting 1 as an example, in Table~\ref{tab:ablation_study}. In the setup of `W/o sensor level concatenation', we take the average of all sensor embeddings (in stead of concatenating them together) to obtain sample embedding.
+Experimental results show that the full \model model achieves the best performance, indicating every component or designed structure is useful to the model. For example, we find that excluding inter-sensor attention weights $ \alpha^t_{i,uv}$ will cause a decrease of 3.9\% in accuracy while excluding edge weights $e_{i,uv}$ (i.e., dependency graphs) will drop the accuracy by 7.1\%.
+
+
+\subsection{Visualization of inter-sensor dependency graphs learned by \model}
+\label{SI:visual}
+We visualize the learned inter-sensor dependencies (\ie, $e_{i, uv}$ before the averaging operation in Eq.~\ref{eq:update_edgeweight}) on P19 in early sepsis prediction. The visualizations are implemented with Cytoscape~\citep{shannon2003cytoscape}. The data shown are for testing set of P19 including 3,881 samples (3708 negative and 173 positive).
+As \model learns the specific graph for each sample, we take average of all positive samples and visualize it in Figure~\ref{fig:visual}b; and visualize the average of all negative samples in Figure~\ref{fig:visual}b. As we take average, the edges with weights smaller than 0.1 (means they rarely appear in graphs) are ignored. The averaged edge weights range from 0.1 to 1. We initialize all sample graphs as complete graph that has 1,156 $ = 34 \times34$ edges, then prune out 50\% of them in training phase, remaining 578 edges. 
+The 34 nodes in figures denote 34 sensors measured in P19, as listed \url{https://physionet.org/content/challenge-2019/1.0.0/}. We list the sensor names here: 0: HR; 1: O2Sat; 2: Temp; 3: SBP; 4: MAP; 5: DBP; 6: Resp; 7: EtCO2; 8: BaseExcess; 9: HCO3; 10: FiO2; 11: pH; 12: PaCO2; 13: SaO2; 14: AST; 15: BUN; 16: Alkalinephos; 17: Calcium; 18: Chloride; 19: Creatinine; 20: Bilirubin\_direct; 21: Glucose; 22: Lactate; 23: Magnesium; 24: Phosphate; 25: Potassium; 26: Bilirubin\_total; 27: TroponinI; 28: Hct; 29: Hgb; 30: PTT; 31: WBC; 32: Fibrinogen; 33: Platelets.
+
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.5\textwidth]{FIG/visual_diff_50_v2.pdf}
+    \caption{Differential structure of dependency graphs between positive and negative samples. The edges are directed. We select the top 50 edges with largest difference (in absolute value) between two patterns. The edges are colored by the divergences. The darker color denotes the connection is more crucial to classification task. Node 0 is not included in this figure as it is not connected with any sensor. We can infer that the heart rate is stable whether the patient will get sepsis or not. Moreover, we can see the edge from node 3 (systolic BP) to node 13 (Oxygen saturation from arterial blood) and the connection from node 6 (Respiration rate) to node 25 (Potassium) are informative for distinguishing sample classes. 
+    } 
+    \label{fig:visual_diff}
+    \vspace{-6mm}
+\end{figure}
+
+We also visualize the differential inter-sensor connections between the learned dependency graphs from patients who are likely to have sepsis and the graphs from patients who are unlikely to suffer from sepsis. Based on the aggregated graph structures of positive and negative samples, we calculate the divergence between two groups of patients and report the results in Figure~\ref{fig:visual_diff}. In detail, we sort edges by the absolute difference of edge weights across negative and positive samples. On top of the visualization of the 50 most distinctive edges, we can have a series of concrete insights. For example, the dependency between node 6 (Respiration rate) to node 25 (Potassium) is important to the early prediction of sepsis. Note these data-driven observations could be biased and still need confirmation and future analysis from healthcare professionals. The edges in both Figure~\ref{fig:visual} and Figure~\ref{fig:visual_diff} are directed. The edge arrows might be difficult to recognize due to the small figure size. We will provide high-resolution figures to our public repository.
+
+
+
+
+
+Furthermore, we statistically measure the similarities across samples within the same class and dissimilarities across samples from different classes. Specifically, for every sample, we calculate: 1) the average Euclidean distance between its dependency graph and the dependency graphs of all samples from the same class; 2) the average distance with all samples from the different classes. The P19 dataset has 38,803 samples including 1,623 positive samples and 37,180 negative samples. For a fair comparison, we randomly select 1,623 samples from the negative cohort, then mixed them with an equal number of positive samples to measure the averaged Euclidean distances intra- and inter-classes. We select the cohort for 5 independent times with replacement. We find that the distance ($(8.6 \pm 1.7)\times 10^{-5}$) among dependency graphs of positive samples is smaller than the distance ($(12.9 \pm 3.1)\times 10^{-5}$) across samples. The results show that the learned dependency graphs are similar within the same class and dissimilar across classes, which demonstrates \model can learn label-sensitive dependency graphs.

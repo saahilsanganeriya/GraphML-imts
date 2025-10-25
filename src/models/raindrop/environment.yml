@@ -1,0 +1,9 @@
+name: graphml-imts
+channels:
+  - defaults
+dependencies:
+  - torchvision=0.15.0
+  - python=3.10
+  - pytorch=2.0.0
+  - numpy[version='<2.0']
+prefix: /Users/saahilsanganeriya/anaconda3/envs/graphml-imts

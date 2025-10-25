@@ -1,0 +1,33 @@
+
+Multivariate time series are prevalent in a variety of domains, including healthcare, space science, cyber security, biology, and finance~\citep{ravuri2021skillful,sousa2020improving,sezer2020financial,fawaz2019deep}. 
+Practical issues often exist in collecting sensor measurements that lead to various types of irregularities caused by missing observations, such as saving costs, sensor failures, external forces in physical systems, medical interventions, to name a few~\citep{choi2020learning}. 
+While temporal machine learning models typically assume fully observed and fixed-size inputs, irregularly sampled time series raise considerable challenges~\citep{mTAND_paper,hu2021time}. For example, observations of different sensors might not be aligned, time intervals among adjacent observations are different across sensors, and different samples have different numbers of observations for different subsets of sensors recorded at different time points~\citep{SeFT_paper,wangdama}. 
+
+Prior methods for dealing with irregularly sampled time series involve filling in missing values using interpolation, kernel methods, and probabilistic approaches~\citep{SchaferGraham:2002}. However, the absence of observations can be informative on its own~\citep{LittleRubin:2014} and thus imputing missing observations is not necessarily beneficial~\citep{agniel2018biases}. 
+While modern techniques involve recurrent neural network architectures (\eg, RNN, LSTM, GRU)~\citep{cho2014learning} and transformers~\citep{vaswani2017attention}, they are restricted to regular sampling or assume aligned measurements across modalities. For misaligned measurements, existing methods tend to rely on a two-stage approach that first imputes missing values to produce a regularly-sampled dataset and then optimizes a model of choice for downstream performance. This decoupled approach does not fully exploit informative missingness patterns or deal with irregular sampling, thus producing suboptimal performance~\citep{Wells:2013, LiMarlin:2016}. Thus, recent methods circumvent the imputation stage and directly model irregularly sampled time series~\citep{GRU-D, SeFT_paper}.
+
+
+Previous studies~\citep{wu2021dynamic,li2020exploring,zhang2019deep} have noted that inter-sensor correlations bring rich information in modeling time series. However, only few studies consider relational structure of irregularly sampled time series, and those which do have limited ability in capturing inter-sensor connections~\citep{wu2021dynamic,IP-Nets}.
+In contrast, we integrate recent advances in graph neural networks to take advantage of relational structure among sensors. We learn latent graphs from multivariate time series and model time-varying inter-sensor dependencies through neural message passing, establishing graph neural networks as a way to model sample-varying and time-varying structure in complex time series. 
+
+
+\begin{wrapfigure}{r}{0.4\textwidth}
+    \centering
+    \vspace{-3mm}
+    \includegraphics[width=\linewidth]{FIG/fig1_v9.pdf}
+    \caption{The \model approach. For sample $\mathcal{S}_i$, sensor $u$ is recorded at time $t_1$ as value $x_{i, u}^{t_1}$, triggering a propagation and transformation of neural messages along edges of $\mathcal{S}_i$'s sensor dependency graph. 
+    }
+    \label{fig:fig1}
+    \vspace{-3mm}
+\end{wrapfigure}
+
+\xhdr{Present work}
+To address the characteristics of irregularly sampled time series, we propose to model temporal dynamics of sensor dependencies and how those relationships evolve over time.
+Our intuitive assumption is that the observed sensors can indicate how the unobserved sensors currently behave, which can further improve the representation learning of irregular multivariate time series. We develop \model\footnote{Code and datasets are available at
+\url{https://github.com/mims-harvard/Raindrop}.}, a graph neural network that leverages relational structure to embed and classify irregularly sampled multivariate time series. 
+\model takes \textit{samples} as input, each sample containing multiple \textit{sensors} and each sensor consisting of irregularly recorded \textit{observations} (\eg, in clinical data, an individual patient's state of health is recorded at irregular time intervals with different subsets of sensors observed at different times). 
+\model model is inspired by how raindrops hit a surface at varying times and create ripple effects that propagate through the surface. Mathematically, in \model, observations (\ie, raindrops) hit a sensor graph (\ie, surface) asynchronously and at irregular time intervals. Every observation is processed by passing messages to neighboring sensors (\ie, creating ripples), taking into account the learned sensor dependencies (Figure~\ref{fig:fig1}). As such, \model can handle misaligned observations, varying time gaps, arbitrary numbers of observations, and produce multi-scale embeddings via a novel hierarchical attention. 
+
+We represent dependencies with a separate sensor graph for every sample wherein nodes indicate sensors and edges denote relationships between them. Sensor graphs are latent in the sense that graph connectivity is learned by \model purely from observational time series. In addition to capturing sensor dependencies within each sample, \model i) takes advantage of similarities between different samples by sharing parameters when calculating attention weights, and ii) considers importance of sequential sensor observations via temporal attention. 
+
+\model adaptively estimates observations based on both neighboring readouts in the temporal domain and similar sensors as determined by the connectivity of optimized sensor graphs. We compare \model to five state-of-the-art methods on two healthcare datasets and an activity recognition dataset across three experimental settings, including a setup where a subset of sensors in the test set is malfunctioning (\ie, have no readouts at all). Experiments show that \model outperforms baselines on all datasets with an average AUROC improvement of 3.5\% in absolute points on various classification tasks. Further, \model improves prior work by a 9.3\% margin (absolute points in accuracy) when varying subsets of sensors malfunction.

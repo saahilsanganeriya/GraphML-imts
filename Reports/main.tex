@@ -1,0 +1,297 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% DOCUMENT SETUP: Do not make any changes to this section.
+\documentclass[a4paper,10.5pt,twoside]{article}
+\hyphenpenalty=8000
+\textwidth=125mm
+\textheight=200mm
+\usepackage[top=1cm, bottom=1cm, inner=2cm, outer=2cm, includehead]{geometry}
+% \usetikzlibrary{automata,positioning,arrows.meta,quotes}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhead{}
+\fancyfoot{}
+\raggedbottom
+\usepackage{xurl}
+\usepackage{graphicx}
+\usepackage{alltt}
+\usepackage{amsmath}
+\usepackage[hidelinks, pdftex]{hyperref}
+\urlstyle{same}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{csquotes}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\usepackage[english]{babel}
+
+% AUTHOR AND TITLE: Replace "Author1" with your first author's information where noted below. Add or remove additional author information as needed, depending on the number of authors on your manuscript. Replace "Article title" with your article title where noted below.
+\begin{document}
+\fancyhead[LE]{\thepage\ \ \ \ Asal Roudbari, Luca Gianantonio, Saahil Sanganeria and Nawal Reza}
+\fancyhead[RO]{\ \ \ \ \thepage}
+\begin{center}
+\LARGE
+\textbf{Graphs for Irregular Multivariate Time Series}\\[12pt]
+\normalsize
+\textbf {Asal Roudbari, Luca Gianantonio, Saahil Sanganeria and Nawal Reza}\\[4pt]
+\end{center}
+
+% % ABSTRACT AND KEYWORDS: Replace "Abstract text" with your abstract text of 100-200 words where noted below. Replace "keyword, keyword, keyword" with your 5-10 keywords, separated by commas, where noted below. 
+% \begin{abstract}
+% \normalsize
+% Abstract text.\vskip 2mm
+% \textbf{Keywords:} keyword, keyword, keyword.
+% \end{abstract}
+
+% MAIN BODY: Replace "Section Title," "Subsection Title," and "Subsubsection Title" with your section, subsection, and subsubsection titles, using title case to capitalize the first and all major words in these titles. Replace lorem ipsum text with your text for each section and subsection. Add additional sections and subsections as needed.
+\section{Introduction}\label{s:1}
+Irregular Multivariate Time Series (IMTS) are ubiquitous across critical domains, including healthcare, climate science, and industrial systems, where observations are collected at non-uniform intervals with varying sampling rates across different variables \cite{zhang2024irregular}. Unlike regular time series, IMTS present unique challenges: \textbf{intra-series} irregularity due to uneven sampling intervals, \textbf{inter-series} asynchrony from different variables being sampled at distinct rates, and the inherent multi-scale nature of temporal patterns that span different granularities \cite{luohi}.
+
+Graph machine learning offers a promising direction to tackle IMTS in healthcare. By representing time-series data as graphs, we can naturally model relationships: for instance, connect measurements that occur close in time or connect variables (sensors) that influence each other. Graph Neural Networks (GNNs) can then propagate information along these connections, capturing both temporal patterns and inter-variable correlations. This approach aligns well with concepts from network science (treating physiological variables and their interactions as a network) and network embeddings (learning latent representations of sensors or time points). Recent research has shown that combining intra-series dynamics (within each variable’s timeline) and inter-series dynamics (between different variables) yields more accurate predictions than modeling either alone \cite{hajisafi2024wavegnn}. 
+
+Given this context, our project will focus on graph-based forecasting for irregular healthcare time series, using the PhysioNet ICU dataset as a testbed. We build upon a state-of-the-art architecture called Hi-Patch (Hierarchical Patch GNN) \cite{luohi}, which was recently proposed to model IMTS by capturing multi-scale temporal patterns. We will (1) implement Hi-Patch as the core model, (2) benchmark it against other strong baseline methods for irregular time-series forecasting in healthcare, and (3) propose at least one novel improvement to push performance further. By the end, we aim to demonstrate improved forecasting of patient outcomes or signals, showcasing the power of graph-based learning in a critical healthcare application.
+
+\section{Background and Related Works}\label{s:2}
+Irregularly sampled multivariate time series (IMTS) are common in healthcare (e.g., electronic health records, ICU monitoring) and beyond \cite{zhou2025revitalizing}, \cite{hajisafi2024wavegnn}. The key challenges include:
+\begin{itemize}
+    \item Intra-series irregularity: Uneven time gaps within a single variable’s observations. 
+
+    \item Inter-series asynchrony: Different variables are observed at different times.
+
+    \item Missing data and sparsity: Some values are unobserved for long durations or entire variables may be missing for some patients. Notably, the absence of a measurement can itself carry information (e.g. skipping a test might imply a certain clinical decision).
+\end{itemize}
+
+Traditional solutions convert irregular data into a regular grid via imputation or Canonical Pre-Alignment (CPA). CPA pads all series with placeholders at every possible timestamp, then fills missing values (often with zeros or interpolations) to align data on a common timeline. While this enables using standard models, it dramatically increases sequence lengths and can distort the true temporal patterns. Moreover, imputation may introduce bias and obscure meaningful missingness signals. 
+
+\textbf{Multivariate Timeseries Modeling for ICU Severity Assessment.} Ghassemi et al. (2015) introduced a multi-task Gaussian process model specifically designed to handle noisy, incomplete, and irregularly sampled clinical data for severity assessment and forecasting in ICU settings \cite{ghassemi2015multivariate}. Their approach demonstrated improved performance over single-task models by effectively modeling the sparse, heterogeneous nature of clinical measurements—challenges that directly parallel those addressed by Hi-Patch. This work established important foundations for handling irregularity in ICU data and validates the potential for advanced models to improve clinical prediction accuracy in the presence of missingness and temporal irregularity.
+
+\textbf{Temporal-Clustering Invariance in Healthcare Time Series.} Bahadori and Lipton (2020) proposed models for analyzing multivariate clinical time series that are invariant to temporal clustering, enhancing predictive accuracy by effectively handling the irregularities inherent in healthcare data \cite{bahadori2020temporal}. Their approach addresses the fundamental challenge that clinical measurements often occur in clusters (e.g., during rounds or specific procedures) rather than uniformly over time. This temporal clustering invariance principle is highly relevant to our Hi-Patch implementation, as it suggests that effective models must account for the non-uniform nature of clinical data collection while maintaining robust prediction capabilities across different temporal patterns.
+
+
+\subsection{Classical IMTS Baselines}\label{s:2.2}
+Beyond patching/GNN approaches, there are several foundational methods that address irregular sampling directly and will serve as strong baselines and ablations in our study:
+
+\textbf{GRU-D} \cite{che2018grud}. Introduces learnable decay mechanisms that incorporate time-since-last-observation and masking, allowing the RNN to down-weight stale inputs and exploit informative missingness. GRU-D still remains a robust clinical baseline for IMTS due to its simplicity and strong performance with sparse, asynchronous measurements.
+
+\textbf{Latent ODE} \cite{rubanova2019latentode}. Encodes history into a continuous-time latent state and evolves it with a neural ODE, enabling queries at arbitrary time horizons and naturally handling irregular timestamps. This provides an interesting and complementary paradigm to patching, where the emphasis is on continuous dynamics rather than fixed grids.
+
+\textbf{SeFT (Set Functions for Time Series)} \cite{horn2020seft}. Treats each variable’s observations as an unordered set of (time, value) points and uses permutation invariant encoders (these are often paired with learned time embeddings and simple pooling) to aggregate information without imputation or alignment. SeFT is particularly competitive on very sparse IMTS and offers a lightweight alternative to sequence models.
+
+\textbf{RainDrop} \cite{zhang2021graph}. Models IMTS as graphs where each observation is a node and edges represent temporal or variable-wise relations, effectively bridging irregular sampling with GNN reasoning. It is a strong and widely cited graph-based baseline.
+
+
+\subsection{Graph-Based Advances for IMTS}
+Recent work highlights the promise of graph neural networks (GNNs) for modeling IMTS. WaveGNN \cite{hajisafi2024wavegnn} directly embeds irregularly sampled data without imputation by combining a Transformer encoder (for intra-series temporal dynamics) with a dynamic GNN (for inter-series relationships). This dual modeling significantly improved predictive performance in healthcare datasets, particularly under extreme sparsity. T-PatchGNN \cite{zhang2024irregular} further addresses sequence length explosion by introducing transformable patches, which align irregular variables into unified temporal resolutions and then apply time-adaptive GNNs to capture dynamic inter-series dependencies. These graph-based strategies emphasize the importance of simultaneously modeling intra-series and inter-series structure, offering natural flexibility for clinical IMTS.
+
+Meanwhile, Hi-Patch \cite{luohi} proposes hierarchical patching with intra-patch and inter-patch graph layers to capture multi-scale dependencies, outperforming state-of-the-art methods across multiple datasets. Compared to prior patching strategies, Hi-Patch uniquely adapts to heterogeneous sampling densities across variables. Complementary to this, KAFNet \cite{zhou2025revitalizing} revitalizes Canonical Pre-Alignment (CPA) by mitigating its efficiency issues via convolutional smoothing, temporal kernel aggregation, and frequency-domain attention, achieving state-of-the-art performance while maintaining CPA’s ability to align asynchronous variables. Finally, multi-scale Transformer methods like Scaleformer \cite{shabani2023scaleformeriterativemultiscalerefining} introduce iterative refinement across temporal resolutions, which has inspired hybrid models that integrate graph and multi-scale attention mechanisms.
+
+Together, these works suggest a growing convergence: effective IMTS models must balance irregularity handling, inter-variable graph reasoning, and multi-scale temporal representation.
+\subsection{Hi-Patch}\label{s:2.1}
+Real-world temporal networks often exhibit irregularities, which results in Irregular Multivariate Time Series. It should be noted that the sampling interval within each variable is uneven, and the variables are asynchronously sampled with varying sample rates. Most works downsample or segment the original series to get fixed timesteps, which in real-world finding a consistently suitable downsampling level for all variables is challenging and can lead to information loss. 
+
+Hi-Patch \cite{luohi} is an architecture designed to effectively capture multi-scale information, which is crucial for time series modeling but challenging for IMTS due to variables having distinct origin scales and asynchronous sampling rates. Existing multi-scale methods are often unsuitable for IMTS because they assume consistent original scales across all variables, which is not true for IMTS where downsampled views can contain mixed granularity features. 
+
+To address this, Hi-Patch encodes each observation (timestamp, value, and variable indicator) as a graph node embedding. The core methodology relies on a sequence of specialized graph layers that operate on time-span-defined patches. An \textbf{Intra-Patch Graph Layer} extracts fine-grained features and local dependencies (temporal, synchronous, and asynchronous inter-variable dependencies) of densely sampled variables within a patch by constructing a fully connected graph and using a Graph Attention Network (GAT). Nodes of the same variable within a patch are then aggregated using multi-time attention to form patch-level feature nodes.
+
+These feature nodes are then processed by a stack of \textbf{Inter-Patch Graph Layers} that form the hierarchical architecture. Each inter-patch layer progressively extracts more global temporal and inter-variable features—from fine-grained to coarse-grained scales (e.g., $P, 2P, 4P, \dots$)—by connecting nodes located in adjacent patches and repeatedly updating states via GAT and aggregating nodes via multi-time attention until a single node embedding is obtained for each variable. The output of the final layer is fed into task-specific decoders for forecasting or classification.
+
+
+\section{Methodology}\label{s:3}
+
+\subsection{Data Description}\label{s:3.1}
+
+\textbf{Dataset Overview.} We utilize the PhysioNet/Computing in Cardiology Challenge 2012 dataset \cite{silva2012physionet}, a benchmark dataset for clinical prediction tasks containing electronic health records from 12,000 ICU patients. Each patient record spans a 48-hour ICU stay period, capturing the critical initial phase of intensive care where accurate monitoring and prediction are paramount for clinical decision-making.
+
+\textbf{Variable Structure.} The dataset comprises 41 physiological and clinical variables organized into two distinct categories: (1) \textbf{General descriptors} (5 variables): Age, Gender, Height, ICUType, and Weight, recorded at admission with 100\% coverage across all patients; and (2) \textbf{Time series variables} (36 variables): including vital signs (HR, RespRate, Temp, SysABP, DiasABP, MAP), laboratory values (Glucose, pH, HCT, K, Na, BUN, Creatinine), and clinical interventions (MechVent, FiO2). The time series variables exhibit highly variable coverage, ranging from 7.4\% (TroponinI) to 99.0\% (HCT) of patients, reflecting clinical protocols where invasive tests are ordered based on patient acuity and specific medical indications.
+
+\textbf{Temporal Characteristics and Irregularity.} The dataset exemplifies the challenges of irregular multivariate time series in healthcare settings. Our analysis reveals a mean sequence length of 77.0 ± 23.3 observations per patient, with an overall data sparsity of 85.7\%. The temporal irregularity is characterized by a mean inter-measurement interval of 0.64 ± 0.49 hours and a median interval of 0.50 hours, with substantial variation (coefficient of variation: 0.63 ± 0.18) reflecting the adaptive nature of clinical monitoring. Measurement frequency averages 1.59 ± 0.48 measurements per hour, with higher-acuity patients receiving more intensive monitoring protocols.
+
+\textbf{ICU Type Heterogeneity.} The dataset encompasses four distinct ICU types: Medical ICU (38.9\%), Surgical ICU (26.1\%), Cardiac Surgery Recovery (20.9\%), and Coronary Care (14.1\%). This heterogeneity introduces additional complexity as different ICU types follow distinct monitoring protocols and exhibit varying measurement intensities, creating a multi-modal data distribution that reflects the diversity of critical care settings.
+
+\textbf{Graph ML Motivation.} The dataset's intrinsic characteristics strongly motivate graph-based modeling approaches. The sparse, irregular measurements naturally form a node-edge structure where each observation can be represented as a graph node with temporal and inter-variable connections. The heterogeneous nature of variables (continuous vitals vs. episodic laboratory tests) and the multi-scale temporal patterns (ranging from minutes to hours) align well with hierarchical graph architectures. Furthermore, the clinical meaningfulness of missing data patterns—where absence of measurements often reflects clinical decision-making rather than random missingness—suggests that graph-based models can leverage these patterns to improve prediction accuracy by modeling the underlying clinical workflow and physiological relationships simultaneously.
+
+\subsection{Exploratory Data Analysis}\label{s:3.1.1}
+
+Our comprehensive exploratory data analysis reveals several critical insights that inform our modeling approach and validate the complexity of irregular multivariate time series in clinical settings.
+
+\textbf{Missing Data Patterns and Clinical Significance.} The missingness patterns in our dataset are far from random, reflecting the underlying clinical decision-making processes that govern ICU monitoring protocols. High-coverage variables such as HCT (99.0\% patient coverage), BUN (98.8\%), and Creatinine (98.8\%) represent routine laboratory panels ordered for most ICU patients, while specialized tests like TroponinI (7.4\% coverage) and Cholesterol (9.6\% coverage) are ordered based on specific clinical indications. This clinical meaningfulness of missingness presents both challenges and opportunities for machine learning models, as the absence of certain measurements may carry as much information as their presence.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{eda_results/missingness_heatmap.png}
+\caption{Missingness patterns across variables and patients showing the non-random nature of missing data in clinical settings. Darker regions indicate higher missingness rates, with clear patterns reflecting clinical protocols and measurement priorities.}
+\label{fig:missingness}
+\end{figure}
+
+\textbf{Physiological Variable Distributions and Outlier Patterns.} Analysis of key physiological variables reveals clinically plausible distributions with notable outlier patterns that reflect the severity of illness in ICU populations. Heart rate (HR) shows a mean of 88.23 ± 18.54 bpm with a range extending to 300 bpm, indicating episodes of severe tachycardia. Glucose levels exhibit substantial variability (148.44 ± 81.99 mg/dL, range 24-816 mg/dL), reflecting both diabetic patients and stress-induced hyperglycemia common in critical illness. These distributions highlight the need for robust models capable of handling extreme values that, while statistically outlying, may be clinically significant.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{eda_results/variable_distributions.png}
+\caption{Distribution of key physiological variables showing clinical ranges and outlier patterns. The distributions reflect the severity of illness in ICU populations, with notable outliers that are clinically meaningful rather than measurement errors.}
+\label{fig:distributions}
+\end{figure}
+
+\textbf{Temporal Irregularity and Multi-scale Patterns.} The temporal structure reveals significant irregularity across multiple scales. Within-patient measurement intervals show high variability (CV = 0.63 ± 0.18), with some measurements occurring as frequently as every 2 minutes while others span gaps exceeding 14 hours. This temporal irregularity varies systematically by variable type: continuous monitoring variables like HR and blood pressure show more regular sampling patterns, while laboratory values and episodic interventions exhibit sparser, event-driven timing. The temporal distribution also shows distinct patterns with higher measurement density in the first 24 hours of ICU stay, suggesting more intensive monitoring during the acute phase of illness.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{eda_results/irregularity_analysis.png}
+\caption{Multi-dimensional analysis of time series irregularity showing the relationship between measurement frequency, data sparsity, temporal variability, and variable coverage. The scatter plots reveal the complex interplay between different aspects of irregularity in clinical data.}
+\label{fig:irregularity}
+\end{figure}
+
+\textbf{Inter-variable Correlations and Physiological Relationships.} Correlation analysis of synchronized measurements reveals clinically meaningful relationships that validate the potential for graph-based modeling. Strong correlations between systolic and diastolic blood pressure (r = 0.26) and weaker but significant relationships between respiratory rate and pH (r = 0.15) reflect known physiological mechanisms. However, the sparsity of synchronized measurements (only 14.3\% of possible observations are present) emphasizes the challenge of capturing these relationships in traditional correlation-based analyses, supporting the need for more sophisticated graph-based approaches that can leverage indirect connections and temporal patterns.
+
+\textbf{ICU Type Heterogeneity and Monitoring Intensity.} The distribution across ICU types reveals substantial heterogeneity in monitoring patterns and measurement intensity. Medical ICU patients (38.9\% of the dataset) show different measurement patterns compared to Cardiac Surgery Recovery patients (20.9\%), with the latter exhibiting more intensive cardiovascular monitoring. This heterogeneity suggests that effective models must account for care setting-specific patterns while still generalizing across the diverse ICU population.
+
+\subsection{Problem Statement}\label{s:3.2}
+
+\textbf{Definition 1 (Irregular Multivariate Time Series).} An irregular multivariate time series is defined as a collection of observations $\mathcal{S} = \{(t_j, z_j, v_j)\}_{j=1}^M$, where:
+\begin{itemize}
+    \item $t_j \in \mathbb{R}^+$ represents the timestamp of the $j$-th observation
+    \item $z_j \in \mathbb{R}$ denotes the observed value
+    \item $v_j \in \{1, 2, \ldots, V\}$ indicates the variable index
+    \item $M$ is the total number of observations across all variables
+    \item $V$ is the total number of variables
+\end{itemize}
+
+\textbf{Definition 2 (Forecasting Query).} A forecasting query is represented as $q_k = (t_k^f, v_k^f)$, where $t_k^f$ denotes the future timestamp and $v_k^f$ specifies the target variable for which we want to predict the value.
+
+\vspace{1cm}
+
+\textbf{Problem Statement (IMTS Forecasting).} Given a historical irregular multivariate time series $\mathcal{S}_{\text{hist}} = \{(t_j, z_j, v_j) | t_j \leq t_{\text{split}}\}_{j=1}^{M_h}$ and a set of forecasting queries $\mathcal{Q} = \{q_k = (t_k^f, v_k^f) | t_k^f > t_{\text{split}}\}_{k=1}^{K}$, the objective is to learn a forecasting function $f: (\mathcal{S}_{\text{hist}}, \mathcal{Q}) \rightarrow \hat{\mathbf{Z}}$ that predicts the corresponding values:
+
+$$\hat{\mathbf{Z}} = \{\hat{z}_k | k = 1, 2, \ldots, K\}$$
+
+where $\hat{z}_k$ is the predicted value for query $q_k$. In this project, we aim to utilize the existing irregular measurements for each patient and forecast the next measurement values within a 24-hour time window. If we were able to accomplish what we aimed for, we can also change the prediction horizon to cover a 6, 12, or 24-hour time window. 
+
+\subsection{Modeling Approach}\label{s:3.3}
+\subsubsection{Baseline Approach}\label{s:3.3.2}
+To establish a strong comparison with Hi-Patch, we implement several representative baseline methods for IMTS forecasting. Each model is designed to handle irregularity through a distinct mechanism, allowing us to benchmark across different methodological paradigms.
+
+\paragraph{GRU-D \cite{che2018grud}.} 
+GRU-D is an RNN-based model that directly augments gated recurrent units with two additional inputs: (1) a time-decay vector that encodes the elapsed time since the last observation for each variable, and (2) a masking vector that indicates whether an observation is present or missing at a given time step. The hidden state update equations are modified to include exponential decay terms, effectively down-weighting stale values and leveraging the informativeness of missingness patterns. This allows GRU-D to handle irregular sampling intervals without explicit imputation, while retaining the efficiency of sequence modeling. 
+
+\paragraph{Latent ODE \cite{rubanova2019latentode}.} 
+Latent ODE encodes a patient’s irregular trajectory into a continuous-time latent state using a recognition network (often a bidirectional RNN or attention encoder). The latent state is then evolved forward in continuous time by solving an ordinary differential equation parameterized by a neural network (the ODE function). Forecasts at arbitrary future times are obtained by decoding the latent state at those timestamps. This continuous-time formulation naturally accommodates irregular observation times and permits querying at any resolution. However, the method depends on computationally expensive ODE solvers and may require adaptive step-size integration for long horizons.
+
+\paragraph{SeFT (Set Functions for Time Series) \cite{horn2020seft}.} 
+SeFT represents each patient’s data as an unordered set of observation triplets \((t, v, z)\), where \(t\) is the timestamp, \(v\) the variable index, and \(z\) the observed value. Rather than enforcing a sequential order, SeFT applies permutation-invariant set encoders (e.g., attention pooling or learned DeepSets functions) to map these sets into latent embeddings. Learned time embeddings are added to represent the temporal position of each observation, and the aggregated representation is passed through downstream predictors. By discarding order, SeFT avoids the need for interpolation or alignment, and is especially effective on sparse datasets with few observations per variable.
+
+\paragraph{RainDrop \cite{zhang2021graph}.} 
+RainDrop adopts a graph perspective on IMTS by treating each observation as a graph node and constructing edges based on temporal proximity and variable co-occurrence. A graph neural network propagates information across these nodes to capture both intra-series dynamics (edges connecting consecutive measurements of the same variable) and inter-series dependencies (edges linking different variables at similar times). Through message passing, the model learns to integrate irregular measurements into consistent latent representations. RainDrop serves as a strong graph-based baseline, bridging the gap between continuous-time models and more structured graph architectures like Hi-Patch.
+
+\subsubsection{Hi-Patch Approach}\label{s:3.3.3}
+The defined method that Hi-Patch \cite{luohi} uses to convert the irregular time series data to graph nodes relies on:
+\begin{enumerate}
+    \item \textbf{Node Definition}: Each observation from the timeseries data will be identified as a node with the format: (timestamp, value, indicator) within the 24-hour period context.
+    
+    \item \textbf{Implement Intra-Patch Layer}: This implementation will help to extract any fine-grained features of densely sampled variable by dividing the historical 24-hr period into non-overlapping patches based on a small time span, denoted as P. For each patch, a fully connected graph is constructed connecting all nodes within the patch. By using a Graph Attention (GAT), we would be able to extract local dependencies. Then, during the aggregation process, the nodes that belong to the same variable within the current patch are aggregated via Multi-Time Attention in order to create the overall feature nodes of the variables during the period observed for each patch. In the case, where there is no observations within a patch, a mask indicator would bee used in order to determine if the aggregated node would need to exist,
+    
+    \item \textbf{Implement Inter-Patch Layer}: The feature nodes from the intra-patch layer are processed by a stack of Inter-Patch Graph Layers that form the hierarchical architecture. Each inter-patch layer progressively extracts more global temporal and inter-variable features—from fine-grained to coarse-grained scales (e.g., P, 2P, 4P, . . . )—by connecting nodes located in adjacent patches and repeatedly updating states via GAT and aggregating nodes via multi-time attention until a single node embedding is obtained for each variable.
+\end{enumerate}
+Finally, the output of the final layer produces a single context aware variable-specific embedding which is fed into task-specific decoders for forecasting. 
+
+\subsubsection{Novel Approach}
+While Hi-Patch is a cutting-edge architecture, there remain open opportunities to enhance its performance and applicability. After analyzing Hi-Patch’s approach and current gaps in IMTS modeling, we propose two ideas for innovations. 
+
+\begin{itemize}
+    \item \textbf{Option 1:} Hi-Patch currently defines graph connections based on patch structure (e.g., linking observations within a patch and neighboring patches). We propose to make the inter-variable graph learnable and context-dependent. Inspired by RAINDROP\cite{zhang2021graph} and WaveGNN\cite{hajisafi2024wavegnn}, we can introduce an attention mechanism to infer edge weights between variables or patches on the fly. For example, at each graph layer, use a similarity function on node features to determine connectivity strengths instead of a fixed pre-set adjacency. This would allow the model to adapt to different patients or time periods, learning which variables are most relevant to connect. We expect this to improve performance in heterogeneous patient data where the relationships between signals (e.g., which vital sign influences another) may vary case by case.
+
+    \item \textbf{Option 2:} We also consider adding a generative modeling component on top of Hi-Patch’s predictive task. Concretely, we could train a Variational Autoencoder (VAE) or diffusion model that uses Hi-Patch’s latent representations to generate or impute time series data. For instance, alongside forecasting the next values, the model could be trained to reconstruct the existing time series (or to generate plausible missing values) through a decoder that tries to reproduce the input sequence. By doing so, the latent node features and graph messages in Hi-Patch would be encouraged to capture the full distribution of the data, not just point predictions. This self-supervised component can act as a regularizer, improving the robustness of the embeddings, and helping the model handle missing data more gracefully. In practice, we might implement a VAE where the encoder is our Hi-Patch GNN and the decoder attempts to reconstruct time series segments; the VAE loss (reconstruction + KL divergence) would be combined with the forecasting loss. The benefit would be twofold: better predictive accuracy (through richer learned representations) and the ability to generate synthetic patient trajectories or do data augmentation, which ties into generative modeling concepts from the course.
+\end{itemize}
+
+
+
+\subsection{Evaluation Metrics}\label{s:3.4}
+
+\subsubsection{Quantitative Analysis}
+The primary metric that will be used is the root mean square error (RMSE) in order com assess all point forecasts across the forecasting horizon. The application of RMSE will capture the magnitude of forecast error, and by reporting it across all models, we will be able to compare their overall performance in order to determine which architecture provides the most reliable forecasts. We will evaluate the RMSE across different patch sizes P and different forecast horizons in order to determine the optimal abstraction level for the PhysioNet dataset.
+
+We will also analyze the Mean Absolute Error (MAE) since it measures the average magnitude of errors by treating each error equal. This will provide a clear and more intuitive understanding about the average forecasting accuracy in the same units as the target variable. Also, with the use of MAE with RMSE, we will be able to gain insight into the impact of outliers since MAE's linear nature makes the metric less sensitive to outliers from large errors. Therefore, with the combination of metrics we will be able to gain the following insights:
+\begin{itemize}
+    \item If the RMSE >> MAE, then the model is prone to large forecasting errors. This would suggest that the model would be unstable in predicting the following changes in the trend within the forecasting horizon given.  
+    \item If the RMSE $\approx$ MAE, then the model's errors are more uniformly distributed and it would show that the model is not suffering from extreme outliers. This would mean that our model is more robust and has stable predictive performance. 
+\end{itemize}
+
+\subsubsection{Qualitative Analysis}
+In order to visualize and capture the temporal nature between the predicted and target signal paths, we will create a trajectory path that overlays the predicted and past signal paths into one timeline. With this kind of plot we will be able to complete a visual inspection of how well the model is able to capture the trend, periodicity and rapid changes via spikes or drops in the physiological variables studied. 
+
+Second, if we train the Variational Autoencoder, then we can visualize the reconstruction quality especially for segments that have high sparsity in the data. Through this approach, we would be able to gain the ability to deeply understand the context by observing the models inferred physiological trajectory during periods where no measurements were recorded. 
+
+Lastly, we can create plots that compare the RMSE as a function of the patch size and the forecast horizon. Through this visualization, we will be able to compare the model across the ranges of patch sizes and horizons applied in order to gain an understanding of how the model's performance trades off between fine-grained temporal patterns and long-range dependencies as the prediction window increases. This will be important for identifying the optimal hierarchical structure represented by the best patch size and the most optimal forecasting window, as it maximizes the predictive accuracy for forecasting the complex structure of the PhysioNet dataset. 
+
+\section{Backup Plans}\label{s:4}
+
+\textbf{Scope fallback (data/task).} 
+If end-to-end forecasting over all 36 time-series variables proves brittle in early pilots: (i) reduce horizon from 24h $\rightarrow$ 12h $\rightarrow$ 6h; (ii) restrict to high-coverage vitals/labs (e.g., HR, MAP, RespRate, HCT, K, Na, Creatinine, BUN); (iii) switch from per-query forecasting to next-timestamp forecasting per variable; (iv) aggregate extremely sparse labs to patch-level medians to stabilize targets.
+
+\medskip
+\textbf{Model complexity fallback (learnable adjacency).}
+Our main novelty is Hi-Patch with \emph{context-dependent} inter-variable/patch edges. If training is unstable or too slow:
+\begin{itemize}
+    \item \textit{Trigger:} Gradients explode ($\|\nabla\|_2 > 5$) or attention matrices become dense ($>20\%$ nonzeros) after warmup.
+    \item \textit{Action order:}
+    \begin{enumerate}
+        \item \textbf{Top-$k$ sparsification:} Replace full attention with $k$-NN over node/patch features ($k \in \{4,8,12\}$); re-normalize with softmax over neighbors only.
+        \item \textbf{Freeze to prior graphs:} 
+        \begin{itemize}
+            \item \emph{Correlation graph}: build per-variable Pearson/MICE-correlation on the training set; threshold at $\tau \in \{0.2,0.3,0.4\}$. 
+            \item \emph{Physiology-informed blocks}: block-diagonal adjacency (vitals, labs, interventions) + few cross-block bridges (e.g., HR$\leftrightarrow$MAP, K$\leftrightarrow$Creatinine).
+        \end{itemize}
+        \item \textbf{Cheaper message passing:} swap GAT $\rightarrow$ GCN/GraphSAGE; or use shared linear attention with fixed random features for edges.
+        \item \textbf{Patch graph simplification:} connect only \{same-variable across adjacent patches\} + \{top-$k$ variable pairs per ICU-type\}; drop long-range inter-patch links.
+    \end{enumerate}
+\end{itemize}
+
+\medskip
+\textbf{Representation ablations (when patching struggles).}
+If patching under-represents ultra-sparse series or creates too many empty patches:
+\begin{itemize}
+    \item \textit{Trigger:} $>30\%$ empty patches or per-variable MAE worse than GRU-D baseline by $>10\%$.
+    \item \textit{Action:}
+    \begin{enumerate}
+        \item \textbf{SeFT-style local encoders:} within-patch, replace sequence encoders with permutation-invariant point encoders (DeepSets/attention pooling on \((t,v,z)\)).
+        \item \textbf{GRU-D features at node level:} append time-gap $\Delta t$ and missingness masks to node features; learn exponential decays.
+        \item \textbf{Single-scale collapse:} drop multi-scale hierarchy; use one inter-patch layer with dilated links $\{P,2P,4P\}$ encoded as edge features.
+        \item \textbf{t-Patch fallback:} transformable patches (variable-length but time-aligned) and time-adaptive GNN; keep Hi-Patch decoders unchanged.
+        \item \textbf{CPA fallback (efficiency-first):} pre-align with masks (CPA) and plug into a compact KAFNet-style backbone (pre-conv + kernel aggregation + linear/frequency attention) for a compute-lean alternative.
+    \end{enumerate}
+\end{itemize}
+
+\medskip
+\textbf{Objective/training fallback (generative head).}
+If multi-tasking (forecast + VAE/diffusion) complicates optimization:
+\begin{itemize}
+    \item \textit{Trigger:} Forecast loss degrades after adding reconstruction; KL term collapses to $<10^{-3}$ for $>5$ epochs.
+    \item \textit{Action:}
+    \begin{enumerate}
+        \item \textbf{Curriculum:} start with forecast-only; add reconstruction on \emph{observed} points (mask-aware MSE); then gradually include imputed points.
+        \item \textbf{KL annealing:} linear warm-up $\beta: 0 \rightarrow 1$ over 10--30 epochs; cap $\beta \leq 0.5$ if forecast deteriorates.
+        \item \textbf{Teacher-forcing schedule:} scheduled sampling from 1.0 $\rightarrow$ 0.0 over horizon.
+        \item \textbf{If still unstable:} drop VAE; keep a light self-supervised auxiliary (contrast adjacent patches, masked-value prediction on nodes).
+    \end{enumerate}
+\end{itemize}
+
+\medskip
+\textbf{Data contingencies.}
+\begin{itemize}
+    \item \textit{Integrity:} unit harmonization (e.g., mmHg vs kPa), de-dup timestamps by median within 1-hour bins, correct clock drift by patient-wise re-basing.
+    \item \textit{Sparse variables:} drop variables with patient-level coverage $<5\%$ from primary task; keep as auxiliary targets for reconstruction if VAE is enabled.
+    \item \textit{Cold-start patients:} require at least $N_{\min}{=}20$ observations in 24h context; otherwise back off to GRU-D or SeFT prediction for that patient.
+    \item \textit{Reproducibility:} fixed seeds, config-logged runs, per-commit data schema checks.
+\end{itemize}
+
+\section{Conclusion and Timeline}\label{s:5}
+
+
+\bibliographystyle{unsrt}
+\bibliography{references}
+
+\end{document}
+
+

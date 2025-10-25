@@ -1,0 +1,187 @@
+\subsection{Overview of \model}
+\label{sub:overview} 
+
+\model aims to learn a fixed-dimensional embedding $\bm{z}_i$ for a given
+sample $\mathcal{S}_i$ and predict the associated label $\hat{y}_i$. To this end, it generates sample embeddings using a hierarchical architecture composed of three levels to model observations (sensor readouts), sensors, and whole samples (Figure~\ref{fig:3layer_embeddings}). 
+Without loss of generality, we describe \model's procedure as if observations arrive one at a time (one sensor is observed at time $t$ and other sensors do not have observations). If there are multiple observations at the same time, \model can effortlessly process them in parallel.
+
+
+\model first constructs a graph for every sample where nodes represent sensors and edges indicate relations between sensors (Sec.~\ref{sub:graph_construction}). We use $\mathcal{G}_i$ to denote the sensor graph for sample $\mathcal{S}_i$ and $e_{i, uv}$ to represent the weight of a directed edge from sensor $u$ to sensor $v$ in $\mathcal{G}_i$. Sensor graphs are automatically optimized considering sample-wise and time-wise specificity.  
+
+The key idea of \model is to borrow information from $u$'s neighbors based on estimated relationships between $u$ and other sensors. This is achieved via message passing carried out on $\mathcal{S}_i$'s dependency graph and initiated at node $u$ in the graph.
+When an observation $(t, x^t_{i, u})$ is recorded for sample $\mathcal{S}_i$ at time $t$, \model first embeds the observation at \textit{active} sensor $u$ (\ie, sensor whose value was recorded) and then propagates messages (\ie, the observation embeddings) from $u$ to neighboring sensors along edges in sensor dependency graph $\mathcal{G}_i$. As a result, recording the value of $u$ can affect $u$'s embedding as well as embeddings of other sensors that related to $u$ (Sec.~\ref{sub:observation_embedding_learning}).
+Finally, \model generates sensor embeddings by aggregating all observation embeddings for each sensor (across all timestamps) using temporal attention weights
+(Sec.~\ref{sub:sensor_embedding_learning}). 
+At last, \model embeds sample $\mathcal{S}_i$ based on sensor embeddings  (Sec.~\ref{sub:sample_embedding_learning}) and feeds the sample embedding into a downstream predictor. 
+
+
+
+
+
+
+\subsection{Constructing Sensor Dependency Graphs}
+\label{sub:graph_construction}
+We build a directed weighted graph $\mathcal{G}_i = \{\mathcal{V}, \mathcal{E}_i\}$ for every sample $\mathcal{S}_i$ and refer to it as the \textit{sensor dependency graph} for $\mathcal{S}_i$. Nodes $\mathcal{V}$ represent sensors and edges $\mathcal{E}_i$ describe dependencies between sensors in sample $\mathcal{S}_i$ that \model infers. As we show in experiments, \model can be directly used with samples that only contain a subset of sensors in $\mathcal{V}$. 
+We denote edge from $u$ to $v$ as a triplet $(u, e_{i, {uv}}, v)$, where $e_{i,{uv}} \in [0, 1]$ represents the strength of relationship between sensors $u$ and $v$ in sample $\mathcal{S}_i$. 
+Edge $(u, e_{i, {uv}}, v)$ describes the relationship between $u$ and $v$: when $u$ receives an observation, it will send a neural message to $v$ following edge $e_{i, {uv}}$. If $e_{i,uv}=0$, there is no exchange of neural information between $u$ and $v$, indicating that the two sensors are unrelated. We assume that the importance of $u$ to $v$ is different than the importance of $v$ to $u$, and so we treat sensor dependency graphs as directed, \ie, $e_{i, uv} \neq e_{i, vu}$. All graphs are initialized as fully-connected graphs (\ie, $e_{i, uv}=1$ for any $u$, $v$ and $\mathcal{S}_i$) and edge weights $e_{i, uv}$ are updated following Eq.~\ref{eq:update_edgeweight} during model training. If available, it is easy to integrate additional domain knowledge into graph initialization.  
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{FIG/fig3_rebuttal_v2.pdf}
+    \caption{
+    \textbf{(a)} \model generates observation embedding $\bm{h}^t_{i,u}$ based on observed value $x_{i, u}^t$ at $t$, passes message to neighbor sensors such as $v$, and generates $\bm{h}^t_{i,v}$ through inter-sensor dependencies. The $\alpha^t_{i, uv}$ denotes a time-specific attention weight, calculated based on time representation $\bm{p}_{i}^t$ and weight vector $\bm{r}_v$. 
+    Edge weight $e_{i, uv}$ is shared by all timestamps.
+    \textbf{(b)} An illustration of generating sensor embedding. 
+    Apply the message passing in (a) to all timestamps and produce corresponding observation embeddings.  
+    We aggregate arbitrary number of observation embeddings into a fixed-length sensor embedding $\bm{z}_{i,v}$ while paying distinctive attentions to different observations. 
+    We independently apply the processing procedure to all sensors. 
+    \textbf{(c)} \model updates edge weight $e^{(l)}_{i, uv}$ based on the edge weight $e^{(l-1)}_{i, uv}$ from previous layer and the learned inter-sensor attention weights in all time steps. We explicitly show layer index $l$ as multiple layers are involved.
+    } 
+    \label{fig:workflow}
+    \vspace{-6mm}
+\end{figure}
+
+\subsection{Generating Embeddings of Individual Observations}     
+\label{sub:observation_embedding_learning}
+
+
+
+Let $u$ indicate active sensor at time $t \in \mathcal{T}_{i,u}$, i.e., sensor whose value $x_{i, u}^t$ is observed at $t$, and let $u$ be connected to $v$ through edge $(u, e_{i, uv}, v)$. We next describe how to produce observation embeddings $\bm{h}_{i,u}^t \in \mathbb{R}^{d_h}$ and $\bm{h}_{i, v}^t \in \mathbb{R}^{d_h}$ for sensors $u$ and $v$, respectively (Figure~\ref{fig:workflow}a).
+We omit layer index $l$ and note that the proposed strategy applies to any number of layers.
+
+\xhdr{Embedding an observation of an active sensor} 
+Let $u$ denote an active sensor whose value has just been observed as $x_{i,u}^t$. %
+For sufficient expressive power~\citep{velivckovic2018graph}, we map observation $x^t_{i,u}$ to a high-dimensional space using a nonlinear transformation: $\bm{h}^t_{i,u} = \sigma(x^t_{i,u}\bm{R}_u)$. 
+We use sensor-specific transformations because values recorded at different sensors can follow different distributions, which is achieved by trainable weight vectors $\bm{R}_u$ depending on what sensor is activated~\citep{li2020type}. 
+Alternatives, such as a multilayer perceptron, can be considered to transform $x^t_{i,u}$ into $\bm{h}^t_{i,u}$. 
+As $\bm{h}^t_{i,u}$ represents information brought on by observing $x^t_{i,u}$, we regard $\bm{h}^t_{i,u}$ as the embedding of $u$'s observation at $t$. 
+Sensor-specific weight vectors $\bm{R}_u$ are shared across samples.
+
+
+
+\xhdr{Passing messages along sensor dependency graphs}
+For sensors that are not active at timestamp $t$ but are neighbors of the active sensor $u$ in the sensor dependency graph $\mathcal{G}_i$, \model uses relationships between $u$ and those sensors to estimate observation embeddings for them. 
+We proceed by describing how \model generates observation embedding $\bm{h}^t_{i,v}$ for sensor $v$ assuming $v$ is a neighbor of $u$ in $\mathcal{G}_i$. 
+Given $\bm{h}^t_{i,u}$ and edge $(u, e_{i, uv}, v)$, we first calculate inter-sensor attention weight $\alpha_{i, uv}^t \in [0, 1]$, representing how important $u$ is to $v$ via the following equation:
+\begin{equation}\label{eq:edge_importance}
+    \alpha_{i, uv}^t = \sigma(\bm{h}^t_{i,u} \bm{D} [\bm{r}_v || \bm{p}^t_i]^T),
+\end{equation} 
+where $\bm{r}_v \in \mathbb{R}^{d_r} $ is a trainable weight vector that is specific to the sensor receiving the message (\ie, $\bm{h}^t_{i,u}$). 
+Vector $\bm{r}_v$ allows the model to learn distinct attention weights for different edges going out from the same sensor $u$.
+Further, $\bm{p}^t_i \in \mathbb{R}^{d_t}$ is the time representation 
+obtained by converting a 1-dimensional timestamp $t$ into a multi-dimensional vector $\bm{p}^t_i$ by passing $t$ through a series of trigonometric functions~\citep{SeFT_paper}.
+See Appendix~\ref{SI:time_encoding} for details. 
+\model uses $\bm{p}^t_i$ to calculate attention weights that are sensitive to time.
+Finally, $\bm{D}$ is a trainable weight matrix mapping $\bm{h}^t_{i,u}$ from $d_h$ dimensions to $(d_r + d_t)$ dimensions. Taken this together, we can estimate the embedding $\bm{h}^t_{i,v}$ for $u$'s neighbor $v$ as follows:
+\begin{equation}
+\label{eq:ob_propagation}
+    \bm{h}^t_{i,v} = \sigma(\bm{h}^t_{i,u} \bm{w}_u \bm{w}_v^T \alpha_{i, uv}^t e_{i, uv}),
+\end{equation}
+where $\bm{w}_u, \bm{w}_v \in \mathbb{R}^{d_h}$ are trainable weight vectors shared across all samples. The $\bm{w}_u$ is specific to active sensor $u$ and  $\bm{w}_v$ is specific to neighboring sensor $v$.
+In the above equation, $e_{i, uv}$ denotes edge weight shared across all timestamps. The above message passing describes the processing of a single observation at a single timestamp. In case multiple sensors are active at time $t$ and connected with $v$, we normalize $\alpha^t_{i, uv}$ (with softmax function) across active sensors and aggregate messages at $v$. 
+
+Overall, \model produces observation embedding $\bm{h}^t_{i,v}$ for sensor $v$ through its relational connection with $u$, even though there is no direct measurement of $v$ at time $t$.
+These message passing operations are performed to adaptively and dynamically estimate missing observations in the embedding space based on recorded information and learned graph structure. 
+
+
+
+
+  
+\xhdr{Updating sensor dependency graphs}
+We describe the update of edge weights and prune of graph structures in the situation that stacks multiple \model layers (Figure~\ref{fig:workflow}). 
+Here we explicitly show layer index~$l$ because multiple layers are involved in the computation. %
+As no prior knowledge is assumed, we initialize the graph as all sensors connected with each other.
+However, the fully connected edges may bridge sensors that should be independent, which will introduce spurious correlations and prevent the model from paying attention to the truly important connections. 
+Addressing this issue, \model automatically updates edge weights and prunes out less important edges. 
+Based on the aggregated temporal influence driven by the inter-sensor attention weights $\alpha^{(l),t}_{i, uv}$, we update edge weights $e^{(l)}_{i, uv}$ in each layer $l\in \{1, \dots, L\}$ by:
+\begin{equation}
+\label{eq:update_edgeweight}
+    e^{(l)}_{i, uv} = 
+        \frac{e^{(l-1)}_{i, uv} }{|\mathcal{T}_{i,u}|} \sum_{t \in \mathcal{T}_{i,u}} \alpha^{(l),t}_{i, uv},
+\end{equation}
+where $\mathcal{T}_{i,u}$ denotes the set of all timestamps where there is message passes from $u$ to $v$. In particular, we set $e^{(0)}_{i,uv}=1$ in the initialization of graph structures. 
+We use $L=2$ in all our experiments.
+In every layer, we order the estimated values $e^{(l)}_{i, uv}$ for all edges in sample $\mathcal{S}_i$ and prune bottom $K$\% edges with smallest edge weights~\citep{yang2021mtag}. Pruned edges are not re-added in later layers.
+
+
+
+
+
+
+
+
+
+\subsection{Generating Sensor Embeddings}
+\label{sub:sensor_embedding_learning}
+Next we describe how to aggregate observation embeddings into sensor embeddings  $\bm{z}_{i,v}$, taking sensor $v$ as an example (Figure~\ref{fig:workflow}b).  
+Previous step (Sec.~\ref{sub:observation_embedding_learning}) generates observation embeddings for every timestamp when either $v$ or $v$'s neighbor
+is observed. 
+The observation embeddings at different timestamps have unequal importance to the the sensor embedding~\citep{zerveas2021transformer}. We use the temporal attention weight (scalar) $\beta^t_{i,v}$ to represent the importance of observation embedding at $t$. We use $\mathcal{T}_{i,v} = \{t_1, t_2, \dots, t_T\}$ to denote all the timestamps when a readout is observed in $v$ (we can directly generate $\bm{h}_{i, v}^t$) or in $v$'s neighbor (we can generate $\bm{h}_{i, v}^t$ through message passing).
+The $\beta^t_{i,v}$ is the corresponding element of vector $ \bm{\beta}_{i,v}$ which include the temporal attention weights at all timestamps $t \in \mathcal{T}_{i,v}$.
+
+We use temporal self-attention to calculate $\bm{\beta}_{i,v}$, which 
+is different from the standard self-attention~\citep{hu2020heterogeneous,yun2019graph}.
+The standard dot-product self-attention
+generates an \textit{attention matrix} with dimension of $T \times T$ (where $T = |\mathcal{T}_{i,v}|$ can vary across samples) that has an attention weight for each pair of observation embeddings. 
+In our case, we only need a single \textit{attention vector} where each element denotes the temporal attention weight of an observation embedding when generating the sensor embedding. Thus, we modify the typical self-attention model to fit our case: using a trainable $\bm{s} \in \mathbb{R}^{T \times 1}$ to map the self-attention matrix ($\mathbb{R}^{T \times T}$) to $T$-dimensional vector $\bm{\beta}_{i,v}$ ($\mathbb{R}^{T \times 1}$) through matrix product (Appendix~\ref{SI:parameter_s}). 
+
+The following steps describe how to generate sensor embeddings.
+We first concatenate observation embedding $\bm{h}^t_{i,v}$ with time representation $\bm{p}^t_i$ to include information of timestamp. Then, we stack the concatenated embeddings $[\bm{h}_{i, v}^t || \bm{p}^t_i]$ for all $t \in \mathcal{T}_{i,v}$ into a matrix $\bm{H}_{i, v}$. The $\bm{H}_{i, v}$ contains all information of observations and timestamps for sensor $v$.
+We calculate $\beta^t_{i,v}$ through: 
+\begin{equation}
+\label{eq:self_attention}
+   \bm{\beta}_{i,v} = \textrm{softmax} \left( \frac{\bm{Q}_{i,v} \bm{K}_{i,v}^T}{\sqrt{d_k}} \bm{s} \right),
+\end{equation}
+where $\bm{Q}_{i,v}$ and $\bm{K}_{i,v}$ are two intermediate matrices that are derived from the stacked observation embeddings.
+In practice, $\bm{Q}_{i,v} = \bm{H}_{i, v}\bm{W}_Q $ and $\bm{K}_{i,v} = \bm{H}_{i, v}\bm{W}_K$ are linearly mapped from $\bm{H}_{i, v}$ parameterized by $\bm{W}_Q$ and $\bm{W}_K$, respectively ~\citep{vaswani2017attention}. The $\sqrt{d_k}$ is a scaling factor where $d_k$ is the dimension after linear mapping.
+Based on the learned temporal attention weights $\beta^t_{i,v}$, we calculate sensor embedding $\bm{z}_{i,v}$ through:
+\begin{equation}
+\label{eq:sensor_embedding}
+    \bm{z}_{i,v} = \sum_{t \in \mathcal{T}_{i,v}}(\beta^t_{i,v} [\bm{h}_{i, v}^t || \bm{p}^t_i ] \bm{W}),
+\end{equation}
+where weight matrix $\bm{W}$ is a linear projector shared by all sensors and samples. %
+It is worth to mention that all attention weights (such as $\alpha^t_{i, uv}$ and $\bm{\beta}_{i,v}$) can be multi-head. In this work, we describe the model in the context of single head for brevity.
+
+Using attentional aggregation, \model can learn a fixed-length sensor embedding for arbitrary number of observations. Meanwhile, \model is capable of focusing on the most informative observation embeddings. We process all observation embeddings as a whole instead of sequentially, which allows parallel computation for faster training and also mitigates the performance drop caused by modeling long dependencies sequentially.
+In the case of sensors with very large number of observations, we can reduce the length of time series by subsampling or splitting a long series into multiple short series.
+
+
+
+
+\subsection{Generating Sample Embeddings}
+\label{sub:sample_embedding_learning}
+Finally, for sample $\mathcal{S}_i$, we aggregate sensor embeddings $\bm{z}_{i,v}$ (Eq.~\ref{eq:sensor_embedding}) across all sensors to obtain an embedding $\bm{z}_i \in \mathbb{R}^{d_z}$ through a readout function $g$ as follows: $\bm{z}_i =g (\bm{z}_{i, v}\;|\;v = 1, 2, \dots, M)$ (such as concatenation).
+When a sample contains a large number of sensors, \model can seamlessly use a set-based readout function such as averaging aggregation (Appendix~\ref{SI:readout}).
+Given an input sample $\mathcal{S}_i$, \model's strategy outlined in  Sec.~\ref{sub:graph_construction}-\ref{sub:sample_embedding_learning} produces a sample embedding $\bm{z}_i$ that can be further optimized for downstream tasks.
+
+
+
+\subsection{Implementation and Practical Considerations} 
+\label{sub:implementation}
+
+\xhdr{Loss function} %
+\model's loss function is formulated as: $\mathcal{L} = \mathcal{L}_{\textrm{CE}} + \lambda \mathcal{L}_r$, where 
+$\mathcal{L}_r = \frac{1}{M^2}\sum_{u, v \in \mathcal{V}} \sum_{i, j \in \mathcal{V}}  ||e_{i, uv} - e_{j, uv}||_2 / (N-1)^2$,
+where $\mathcal{L}_{\textrm{CE}}$ is cross entropy and $\mathcal{L}_r$ is a regularizer to encourage the model to learn similar sensor dependency graphs for similar samples. 
+The $\mathcal{L}_r$ measures averaged Euclidean distance between edge weights across all samples pairs, in all sensor pairs (including self-connections). The $\lambda$ is a user-defined coefficient.
+Practically, as $N$ can be large, we calculate $\mathcal{L}_r$ only for samples in a batch. 
+
+\xhdr{Downstream tasks}
+If a sample has auxiliary attributes (\eg, a patient's demographics) that do not change over time, we can project the attribute vector to a $d_a$-dimensional vector $\bm{a}_i$ with a fully-connected layer and concatenate it with the sample embedding, getting $[\bm{z}_i||\bm{a}_i]$.
+At last, we feed $[\bm{z}_i||\bm{a}_i]$ (or only $\bm{z_i}$ if $\bm{a}_i$ is not available) into a neural classifier $\varphi: \mathbb{R}^{d_z + d_a} \rightarrow \{1, \dots, C\}$. In our experiments, $\varphi$ is a 2-layer fully-connected network with $C$ neurons at the output layer returning prediction $\hat{y}_i = \varphi([\bm{z}_i||\bm{a}_i])$ for sample $\mathcal{S}_i$.
+
+\xhdr{Sensor dependencies} 
+While modeling sensor dependencies, we 
+involve observation embedding ($\bm{h}_{i, u}^t$, Eq.~\ref{eq:edge_importance}) of each sample in the calculation of attention weights. 
+Similarly, to model time-wise specificity in graph structures, we consider time information ($\bm{p}^t_{i}$, Eq.~\ref{eq:edge_importance}) when measuring $\alpha^t_{i, uv}$. 
+\model can capture similar graph structures
+across samples from three aspects (Appendix~\ref{SI:sample_similarity}): (1) the initial graphs are the same in all samples; 
+(2) the parameters in message passing ($\bm{R}_u$; $\bm{w}_u$, $\bm{w}_v$, Eq.~\ref{eq:ob_propagation}), inter-sensor attention weights calculation ($\bm{D}$, Eq.~\ref{eq:edge_importance}), and temporal attention weights calculation ($\bm{s}$, Eq.~\ref{eq:self_attention}; $\bm{W}$, Eq.~\ref{eq:sensor_embedding}) are shared by all samples; (3) we encourage the model to learn similar graph structures
+by adding a penalty to disparity of structures ($\mathcal{L}_r $). 
+
+
+\xhdr{Scalability}
+\model is efficient because embeddings can be learned in parallel. In particular, processing of observation embeddings is independent across timestamps. Similarly, sensor embeddings can be processed independently across different sensors (Figure~\ref{fig:workflow}). 
+While the complexity of temporal self-attention calculation grows quadratically with the number of observations,
+it can be practically implemented using highly-optimized matrix multiplication.

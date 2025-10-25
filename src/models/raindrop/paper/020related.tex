@@ -1,0 +1,20 @@
+
+Our work here builds on time-series representation learning and notions of graph neural networks and attempts to resolve them by developing a single, unified approach for analysis of complex time series. 
+
+\xhdr{Learning with irregularly sampled multivariate time series}
+Irregular time series are characterized by varying time intervals between adjacent observations~\citep{zerveas2021transformer,tipirneni2021self,chen2020multi}. In a multivariate case, irregularity means that observations can be misaligned across different sensors, which can further complicate the analysis. Further, because of a multitude of sampling frequencies and varying time intervals, the number of observations can also vary considerably across samples~\citep{fang2020time,kidger2020neural}. 
+Predominant downstream tasks for time series are classification (\ie, predicting a label for a given sample, \eg, \cite{tan2020data,ma2020adversarial}) and forecasting (\ie, anticipating future observations based on historical observations, \eg, \cite{wu2020adversarial}). The above mentioned characteristics create considerable challenges for models that expect well-aligned and fixed-size inputs~\citep{shukla2020survey}. An intuitive way to deal with irregular time series is to impute missing values and process them as regular time series~\citep{mikalsen2021time,li2020learning,shan2021nrtsi}. However, imputation methods can distort the underlying distribution and lead to unwanted distribution shifts.
+To this end, recent methods directly learn from irregularly sampled time series~\citep{LatentODE}. 
+For example, \cite{GRU-D} develop a decay mechanism based on gated recurrent units (\textit{GRU-D}) and binary masking to capture long-range temporal dependencies.
+\textit{SeFT}~\citep{SeFT_paper} takes a set-based approach and transforms irregularly sampled time series datasets into sets of observations modeled by set functions insensitive to misalignment. 
+\textit{mTAND}~\citep{mTAND_paper} leverages a multi-time attention mechanism to learn temporal similarity from non-uniformly collected measurements and produce continuous-time embeddings.
+\textit{IP-Net}~\citep{IP-Nets} and \textit{DGM$^2$}~\citep{wu2021dynamic} adopt imputation to interpolate irregular time series against a set of reference points using a kernel-based approach. 
+The learned inter-sensor relations are static ignoring sample-specific and time-specific characteristics. 
+In contrast with the above methods, \model leverages dynamic graphs
+to address the characteristics of irregular time series and produce high-quality representations.
+
+\xhdr{Learning with graphs and neural message passing} 
+There has been a surge of interest in applying neural networks to graphs, leading to the development of graph embeddings~\citep{zhou2020graph,li2021representation}, graph neural networks~\citep{wu2020comprehensive}, and message passing neural networks~\citep{gilmer2017neural}.
+To address the challenges of irregular time series, \model specifies a message passing strategy to exchange neural message along edges of sensor graphs and deal with misaligned sensor readouts~\citep{riba2018learning,nikolentzos2020message,galkin2020message,fey2020hierarchical,lin2018variational,zhang2020dynamic}. 
+In particular, \model considers message passing on latent sensor graphs, each graph describing a different sample (\eg, patient, Figure~\ref{fig:fig1}), and it specifies a message-passing network with learnable adjacency matrices. The key difference with the predominant use of message passing is that \model uses it to estimate edges (dependencies) between sensors rather than applying it on a fixed, apriori-given graph.
+To the best of our knowledge, prior work did not utilize sensor dependencies for irregularly sampled time series. While prior work used message passing for regular time series~\citep{wang2020traffic,wu2020connecting,kalinicheva2020unsupervised,zha2022towards}, its utility for irregularly sampled time series has not yet been studied.

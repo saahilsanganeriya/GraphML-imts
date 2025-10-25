@@ -1,0 +1,32 @@
+
+
+Let $\mathcal{D} = \{(\mathcal{S}_i, y_i)\;|\; i = 1, \dots, N\}$ denote an irregular time series dataset with $N$ labeled samples (Figure~\ref{fig:3layer_embeddings}). Every sample $\mathcal{S}_i$ is an irregular multivariate time series with a corresponding label $y_i \in \{1, \dots, C\}$, indicating which of the $C$ classes $\mathcal{S}_i$ is associated with. Each sample contains
+$M$ non-uniformly measured sensors that are denoted as $u$, $v$, etc. 
+\model can also work on samples with only a subset of active sensors (see Sec.~\ref{sec:multitude}). 
+Each sensor is given by a sequence of observations ordered by time. For sensor $u$ in sample $\mathcal{S}_i$, we denote a single observation
+as a tuple $(t, x^t_{i, u})$, meaning that sensor $u$ was recorded with value $x^t_{i, u} \in \mathbb{R}$ at timestamp $t \in \mathbb{R}^+$. We omit sample index $i$ and sensor index $u$ in timestamp $t$.
+Sensor observations are irregularly recorded, meaning that time intervals between successive observations can vary across sensors.
+For sensor $u$ in sample $\mathcal{S}_i$, we use $\mathcal{T}_{i, u}$ to denote the set of timestamps that $u$, or at least one of $u$'s $L$-hop neighbors ($L$ is the number of layers in \model's message passing) is recorded. 
+We use $||$ and $^T$ to denote concatenation and transpose, respectively.
+We omit layer index $l \in \{1, \dots, L\}$ for simplicity when clear from the text. 
+
+
+
+\begin{problem*}
+A dataset $\mathcal{D}$ of irregularly sampled multivariate time series is given, where each sample $\mathcal{S}_i$ has multiple sensors and each sensor has a variable number of observations. 
+\model learns a function $f: \mathcal{S}_i \rightarrow  \bm{z}_i $ that maps $\mathcal{S}_i$ to a fixed-length representation $\bm{z}_i$ suitable for downstream task of interest, such as classification.
+Using learned $\bm{z}_i$, \model can predict label $\hat{y}_i \in \{1, \dots, C\}$ for $\mathcal{S}_i$.
+\end{problem*}
+
+\model learns informative embeddings for irregularly samples time series. The learned embeddings capture temporal patterns of irregular observations and explicitly consider varying dependencies between sensors.
+While we focus on time-series classification in this work, the proposed method can be easily extended to broader applications such as regression, clustering and generation tasks.
+
+\begin{wrapfigure}{r}{0.3\textwidth}
+    \centering
+    \vspace{-3mm}
+    \includegraphics[width=\linewidth]{FIG/illustration_embeddings_v5.pdf}
+    \caption{Hierarchical structure of irregular multivariate time series dataset. \model embeds individual observations considering inter-sensor dependencies (Sec.~\ref{sub:observation_embedding_learning}), aggregates them into a sensor embedding using temporal attention (Sec.~\ref{sub:sensor_embedding_learning}), and finally integrates
+    sensor embeddings into a sample embedding (Sec.~\ref{sub:sample_embedding_learning}).     }
+    \label{fig:3layer_embeddings}
+    \vspace{-6mm}
+\end{wrapfigure}

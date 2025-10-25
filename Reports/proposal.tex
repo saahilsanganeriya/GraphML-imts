@@ -1,0 +1,100 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DOCUMENT SETUP
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[a4paper,10.5pt,twoside]{article}
+\hyphenpenalty=8000
+\textwidth=125mm
+\textheight=200mm
+\usepackage[top=1cm, bottom=1cm, inner=2cm, outer=2cm, includehead]{geometry}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhead{}
+\fancyfoot{}
+\raggedbottom
+\usepackage{xurl}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage[hidelinks, pdftex]{hyperref}
+\urlstyle{same}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\usepackage[english]{babel}
+
+\begin{document}
+\fancyhead[LE]{\thepage\ \ \ \ Roudbari, Gianantonio, Sanganeria, Reza}
+\fancyhead[RO]{Graphs for Irregular Multivariate Time Series\ \ \ \ \thepage}
+
+\begin{center}
+\LARGE
+\textbf{Graphs for Irregular Multivariate Time Series}\\[8pt]
+\normalsize
+\textbf{Asal Roudbari, Luca Gianantonio, Saahil Sanganeria, Nawal Reza}\\[4pt]
+\end{center}
+
+\section{Problem Description}
+Irregular Multivariate Time Series (IMTS) arise in healthcare when observations are collected at non-uniform intervals with varying sampling rates across variables \cite{zhang2024irregular}. This presents three key challenges: \textbf{(1)} intra-series irregularity from uneven sampling intervals, \textbf{(2)} inter-series asynchrony from variables sampled at different rates, and \textbf{(3)} multi-scale temporal patterns spanning different granularities \cite{luohi}. Traditional approaches using imputation or Canonical Pre-Alignment (CPA) distort temporal patterns and obscure meaningful missingness signals.
+
+Graph Neural Networks (GNNs) offer a natural solution by representing measurements as nodes and modeling both temporal relationships (within variables) and inter-variable dependencies (between sensors). Recent work shows that combining intra-series and inter-series graph dynamics significantly improves predictions \cite{hajisafi2024wavegnn}. We will implement and extend Hi-Patch \cite{luohi}, a hierarchical GNN that captures multi-scale dependencies in IMTS, benchmark it against strong baselines (GRU-D, Latent ODE, SeFT, RainDrop), and propose novel improvements for healthcare forecasting using the PhysioNet ICU dataset.
+
+\section{Related Work}
+\textbf{Classical baselines.} GRU-D \cite{che2018grud} uses learnable time-decay and masking for irregular RNNs. Latent ODE \cite{rubanova2019latentode} evolves continuous-time latent states via neural ODEs. SeFT \cite{horn2020seft} treats observations as permutation-invariant sets.
+
+\textbf{Graph-based advances.}  RainDrop \cite{zhang2021graph} constructs observation-level graphs for GNN message passing. WaveGNN \cite{hajisafi2024wavegnn} combines Transformers (intra-series) with dynamic GNNs (inter-series). T-PatchGNN \cite{zhang2024irregular} uses transformable patches with time-adaptive GNNs. KAFNet \cite{zhou2025revitalizing} revitalizes CPA via kernel aggregation and frequency attention.
+
+\textbf{Hi-Patch.} Hi-Patch \cite{luohi} divides time into patches and uses: (1) \textit{Intra-patch layers} that build fully-connected graphs within patches and aggregate same-variable nodes via multi-time attention, and (2) \textit{Inter-patch layers} that hierarchically connect adjacent patches across scales (P, 2P, 4P, ...) using GAT message passing. This captures both fine-grained local patterns and coarse-grained global dependencies without downsampling.
+
+\section{Methodology}
+\subsection{Data}
+We use PhysioNet/Computing in Cardiology Challenge 2012 \cite{silva2012physionet}: 12,000 ICU patients with 48-hour records containing 5 static descriptors and 36 time-series variables (vitals, labs, interventions). Key characteristics: mean sequence length 77.0$\pm$23.3 observations/patient, 85.7\% sparsity, mean inter-measurement interval 0.64$\pm$0.49 hours, variable coverage ranging 7.4\%--99.0\%. Four ICU types introduce heterogeneous monitoring protocols. The irregular, sparse measurements with clinically meaningful missingness patterns strongly motivate graph-based modeling.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{eda_results/variable_distributions.png}
+\caption{Distribution of key physiological variables showing clinical ranges and outlier patterns. The distributions reflect the severity of illness in ICU populations, with notable outliers that are clinically meaningful rather than measurement errors.}
+\label{fig:distributions}
+\end{figure}
+
+
+\subsection{Problem Formulation}
+Given historical IMTS $\mathcal{S}_{\text{hist}} = \{(t_j, z_j, v_j) | t_j \leq t_{\text{split}}\}$ where $t_j$ is timestamp, $z_j$ is value, $v_j \in \{1,...,V\}$ is variable index, and forecast queries $\mathcal{Q} = \{(t_k^f, v_k^f) | t_k^f > t_{\text{split}}\}$, learn $f: (\mathcal{S}_{\text{hist}}, \mathcal{Q}) \rightarrow \hat{\mathbf{Z}}$ to predict values $\hat{z}_k$ for each query. We forecast next measurements within 6--24 hour windows.
+
+\subsection{Approach}
+\textbf{Baselines.} We implement: (1) GRU-D with time-decay and masking; (2) Latent ODE with continuous-time evolution; (3) SeFT with set encoders; (4) RainDrop with observation graph. The following are considered if the overall implementation seems to be working fine: (5) WaveGNN, (6): T-PatchGNN, (7)KAFNet.
+
+\textbf{Hi-Patch core.} Each observation becomes a node $(t, z, v)$. Intra-patch layers divide the 24h period into patches of span P, construct fully-connected graphs per patch, apply GAT for local dependencies, then aggregate same-variable nodes via multi-time attention. Inter-patch layers hierarchically connect adjacent patches at scales P, 2P, 4P, iteratively applying GAT and aggregation until one embedding per variable feeds the forecasting decoder.
+
+\textbf{Planned Novel Contributions:}
+\begin{itemize}
+    \item \textit{Option 1 - Learnable graphs:} Replace fixed patch adjacency with attention-based edge weights computed from node features, allowing patient/time-specific connectivity inspired by WaveGNN \cite{hajisafi2024wavegnn}.
+    \item \textit{Option 2 - Generative VAE:} Add a VAE decoder to reconstruct/impute time series alongside forecasting. Hi-Patch embeddings serve as the encoder; VAE loss (reconstruction + KL) regularizes representations for better handling of missingness and enables synthetic trajectory generation.
+\end{itemize}
+
+\subsection{Evaluation}
+\textbf{Quantitative:} RMSE (primary) and MAE across forecast horizons and patch sizes. RMSE $\gg$ MAE indicates outlier sensitivity; RMSE $\approx$ MAE suggests stable predictions. Compare models statistically.
+
+\textbf{Qualitative:} (1) Trajectory plots overlaying predicted/actual signals to assess trend/spike capture; (2) VAE reconstruction quality on sparse segments; (3) RMSE vs. patch size and horizon to identify optimal hierarchical structure.
+
+\section{Contributions}
+\textbf{Asal:} Latent-ODE, WaveGNN, Hi-Patch  \newline
+\textbf{Luca:} SeFT, KAFNet, Learnable Graphs    \newline
+\textbf{Saahil:} Data Preprocessing and Cleaning, RainDrop, Evaluation  \newline
+\textbf{Nawal:} GRU-D, T-PatchGNN, Generative VAE \newline
+
+\section{Backup Plans}
+\textbf{Scope:} If 36 variables $\times$ 24h fails, reduce to: 12h/6h horizon, high-coverage vitals/labs only, or next-timestamp forecasting.
+
+\textbf{Model complexity:} If learnable graphs cause instability (gradient explosion, dense attention), use: top-$k$ sparsification ($k{=}4{-}12$), correlation-based fixed graphs (Pearson threshold $\tau{=}0.2{-}0.4$), physiology-informed blocks, or simpler GCN/GraphSAGE layers.
+
+\textbf{Representation:} If $>30\%$ empty patches or MAE $>10\%$ worse than GRU-D, switch to: SeFT-style permutation-invariant encoders within patches, GRU-D decay features at nodes, single-scale with dilated edges, or T-PatchGNN/KAFNet fallbacks.
+
+\textbf{Generative:} If VAE degrades forecast or KL collapses, use: curriculum (forecast-only $\rightarrow$ reconstruction), KL annealing ($\beta: 0{\rightarrow}0.5$), or drop VAE for simpler self-supervision (patch contrast, masked prediction).
+
+\textbf{Data:} Unit harmonization, timestamp deduplication (1h bins), drop variables with $<5\%$ coverage, require $\geq20$ observations per patient.
+
+\bibliographystyle{unsrt}
+\bibliography{references}
+
+\end{document}

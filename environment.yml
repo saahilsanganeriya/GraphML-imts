@@ -1,0 +1,18 @@
+name: graphml-imts
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - pytorch::pytorch=2.0.0
+  - pytorch::torchvision=0.15.0
+  - numpy<2.0
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - tqdm
+  - pyyaml
+  - jupyter

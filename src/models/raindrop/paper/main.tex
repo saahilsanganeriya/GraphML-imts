@@ -1,0 +1,139 @@
+\documentclass{article} %
+\usepackage{iclr2022_conference,times}
+
+\input{math_commands.tex}
+\usepackage[utf8]{inputenc} %
+\usepackage[T1]{fontenc}    %
+\usepackage{url}            %
+\usepackage{booktabs}       %
+\usepackage{amsfonts}       %
+\usepackage{nicefrac}       %
+\usepackage{microtype}      %
+\usepackage{xspace}
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{bm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{times}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{subfig}
+
+\urlstyle{same}
+
+
+\usepackage[title]{appendix}
+\usepackage{wrapfig}
+\usepackage[colorlinks=true,linkcolor=blue, urlcolor=blue, citecolor=gray, anchorcolor=black]{hyperref}
+\usepackage{comment}
+
+\newcommand{\marinka}[1]{{\color{magenta}[[M: #1]]}}
+\newcommand{\xiang}[1]{{\color{blue}[[X: #1]]}}
+\newcommand{\marko}[1]{{\color{orange}[[Marko: #1]]}}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+
+\newcommand{\ie}{\textit{i.e.}}
+\newcommand{\eg}{\textit{e.g.}}
+\newcommand{\etal}{\textit{et al.}\xspace}
+\newcommand{\cut}[1]{}
+\newcommand{\std}[1]{\scriptsize{$\pm$#1}}
+\newcommand{\xhdr}[1]{\noindent{{\bf #1.}}}
+
+\newcommand{\CITE}{{\textcolor{red}{[CITE]}}}
+
+\newcommand{\model}{\textsc{Raindrop}\xspace}
+
+\newtheorem*{problem*}{Problem (Representation learning for irregularly sampled multivariate time series)} 
+
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{array}
+\newcolumntype{H}{>{\setbox0=\hbox\bgroup}c<{\egroup}@{}} 
+
+\usepackage{contour}
+\usepackage{ulem}
+\renewcommand{\ULdepth}{1.8pt}
+\contourlength{0.8pt}
+\newcommand{\myuline}[1]{%
+  \uline{\phantom{#1}}%
+  \llap{\contour{white}{#1}}%
+}
+\renewcommand{\underline}{\myuline}
+
+
+\title{Graph-Guided Network for Irregularly \\Sampled Multivariate Time Series}
+
+\author{Xiang Zhang \\
+Harvard University \\
+\texttt{xiang\_zhang@hms.harvard.edu} \\
+\And
+Marko Zeman\\
+University of Ljubljana \\
+\texttt{marko.zeman@fri.uni-lj.si} \\
+\And
+Theodoros Tsiligkaridis \\ %
+MIT Lincoln Laboratory \\  %
+\texttt{ttsili@ll.mit.edu}\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\; \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\\  %
+\And
+Marinka Zitnik  \\ 
+Harvard University \\
+\texttt{marinka@hms.harvard.edu}\\  
+}
+
+
+
+\iclrfinalcopy
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\input{000abstract.tex}
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+\input{010intro} 
+
+\section{Related Work}\label{sec:related}
+\input{020related}
+
+\section{\model}\label{sec:method}
+\input{030preliminaries}
+\input{040method}
+
+\section{Experiments}\label{sec:experiments}
+\input{050setup}
+
+\input{060results}
+
+\section{Conclusion}\label{sec:conclusion}
+\input{070conclusion}
+
+\clearpage
+
+\section*{Acknowledgments}
+
+
+This material is based upon work supported by the Under Secretary of Defense for Research and Engineering under Air Force Contract No.~FA8702-15-D-0001. M.Z. is supported, in part, by NSF under nos. IIS-2030459 and IIS-2033384, Harvard Data Science Initiative, Amazon Research Award, Bayer Early Excellence in Science Award, AstraZeneca Research, and Roche Alliance with Distinguished Scientists Award. Any opinions, findings, conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of the funders. The authors declare that there are no conflict of interests. 
+
+\input{071broader}
+
+
+
+\clearpage
+\bibliographystyle{iclr2022_conference}
+\bibliography{refs} 
+
+\newpage
+\appendix
+
+\section{Appendix}\label{sec:appendix}
+\input{080appendix}
+
+
+\clearpage
+
+
+
+\end{document}

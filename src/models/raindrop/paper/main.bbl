@@ -1,0 +1,415 @@
+\begin{thebibliography}{63}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Agniel et~al.(2018)Agniel, Kohane, and Weber]{agniel2018biases}
+Denis Agniel, Isaac~S Kohane, and Griffin~M Weber.
+\newblock Biases in electronic health record data due to processes within the
+  healthcare system: retrospective observational study.
+\newblock \emph{British Medical Journal}, 361, 2018.
+
+\bibitem[Che et~al.(2018)Che, Purushotham, Cho, Sontag, and Liu]{GRU-D}
+Zhengping Che, Sanjay Purushotham, Kyunghyun Cho, David Sontag, and Yan Liu.
+\newblock Recurrent neural networks for multivariate time series with missing
+  values.
+\newblock \emph{Scientific Reports}, 8\penalty0 (1):\penalty0 1--12, 2018.
+
+\bibitem[Chen et~al.(2018)Chen, Rubanova, Bettencourt, and Duvenaud]{LatentODE}
+Tian~Qi Chen, Yulia Rubanova, Jesse Bettencourt, and David~K Duvenaud.
+\newblock Neural ordinary differential equations.
+\newblock In \emph{NeurIPS}, 2018.
+
+\bibitem[Chen et~al.(2020)Chen, Jiaze, Zhang, Sheng, and Cheng]{chen2020multi}
+Zekai Chen, E~Jiaze, Xiao Zhang, Hao Sheng, and Xiuzheng Cheng.
+\newblock Multi-task time series forecasting with shared attention.
+\newblock In \emph{ICDM Workshop}, pp.\  917--925, 2020.
+
+\bibitem[Cho et~al.(2014)Cho, Van~Merri{\"e}nboer, Gulcehre, Bahdanau,
+  Bougares, Schwenk, and Bengio]{cho2014learning}
+Kyunghyun Cho, Bart Van~Merri{\"e}nboer, Caglar Gulcehre, Dzmitry Bahdanau,
+  Fethi Bougares, Holger Schwenk, and Yoshua Bengio.
+\newblock Learning phrase representations using rnn encoder-decoder for
+  statistical machine translation.
+\newblock 2014.
+
+\bibitem[Choi et~al.(2020)Choi, Xu, Li, Dusenberry, Flores, Xue, and
+  Dai]{choi2020learning}
+Edward Choi, Zhen Xu, Yujia Li, Michael Dusenberry, Gerardo Flores, Emily Xue,
+  and Andrew Dai.
+\newblock Learning the graphical structure of electronic health records with
+  graph convolutional transformer.
+\newblock In \emph{AAAI}, volume~34, pp.\  606--613, 2020.
+
+\bibitem[Errica et~al.(2021)Errica, Bacciu, and Micheli]{Erricagraph2021}
+Federico Errica, Davide Bacciu, and Alessio Micheli.
+\newblock Graph mixture density networks.
+\newblock In \emph{ICML}, pp.\  3025--3035, 2021.
+
+\bibitem[Fang \& Wang(2020)Fang and Wang]{fang2020time}
+Chenguang Fang and Chen Wang.
+\newblock Time series data imputation: A survey on deep learning approaches.
+\newblock \emph{arXiv:2011.11347}, 2020.
+
+\bibitem[Fawaz et~al.(2019)Fawaz, Forestier, Weber, Idoumghar, and
+  Muller]{fawaz2019deep}
+Hassan~Ismail Fawaz, Germain Forestier, Jonathan Weber, Lhassane Idoumghar, and
+  Pierre-Alain Muller.
+\newblock Deep learning for time series classification: a review.
+\newblock \emph{Data Mining and Knowledge Discovery}, 33\penalty0 (4):\penalty0
+  917--963, 2019.
+
+\bibitem[Fey et~al.(2020)Fey, Yuen, and Weichert]{fey2020hierarchical}
+Matthias Fey, Jan-Gin Yuen, and Frank Weichert.
+\newblock Hierarchical inter-message passing for learning on molecular graphs.
+\newblock \emph{arXiv:2006.12179}, 2020.
+
+\bibitem[Galkin et~al.(2020)Galkin, Trivedi, Maheshwari, Usbeck, and
+  Lehmann]{galkin2020message}
+Mikhail Galkin, Priyansh Trivedi, Gaurav Maheshwari, Ricardo Usbeck, and Jens
+  Lehmann.
+\newblock Message passing for hyper-relational knowledge graphs.
+\newblock \emph{arXiv:2009.10847}, 2020.
+
+\bibitem[Ganesh et~al.(2021)Ganesh, Chen, Lou, Khan, Yang, Sajjad, Nakov, Chen,
+  and Winslett]{ganesh2021compressing}
+Prakhar Ganesh, Yao Chen, Xin Lou, Mohammad~Ali Khan, Yin Yang, Hassan Sajjad,
+  Preslav Nakov, Deming Chen, and Marianne Winslett.
+\newblock Compressing large-scale transformer-based models: A case study on
+  bert.
+\newblock \emph{Transactions of the Association for Computational Linguistics},
+  9:\penalty0 1061--1080, 2021.
+
+\bibitem[Gilmer et~al.(2017)Gilmer, Schoenholz, Riley, Vinyals, and
+  Dahl]{gilmer2017neural}
+Justin Gilmer, Samuel~S Schoenholz, Patrick~F Riley, Oriol Vinyals, and
+  George~E Dahl.
+\newblock Neural message passing for quantum chemistry.
+\newblock In \emph{ICML}, pp.\  1263--1272. PMLR, 2017.
+
+\bibitem[Goldberger et~al.(2000)Goldberger, Amaral, Glass, Hausdorff, Ivanov,
+  Mark, Mietus, Moody, Peng, and Stanley]{Goldberger:2000}
+Ary~L. Goldberger, Luis A.~Nunes Amaral, L~Glass, Jeffrey~M. Hausdorff,
+  Plamen~Ch. Ivanov, Roger~G. Mark, Joseph~E. Mietus, George~B. Moody,
+  Chung-Kang Peng, and Harry~Eugene Stanley.
+\newblock {PhysioBank, PhysioToolkit, and PhysioNet: components of a new
+  research resource for complex physiologic signals.}
+\newblock \emph{Circulation}, 101 23:\penalty0 E215--20, 2000.
+
+\bibitem[Horn et~al.(2020)Horn, Moor, Bock, Rieck, and Borgwardt]{SeFT_paper}
+Max Horn, Michael Moor, Christian Bock, Bastian Rieck, and Karsten Borgwardt.
+\newblock {Set functions for time series}.
+\newblock pp.\  4303--4313, 2020.
+
+\bibitem[Hu et~al.(2018)Hu, Shen, and Sun]{hu2018squeeze}
+Jie Hu, Li~Shen, and Gang Sun.
+\newblock Squeeze-and-excitation networks.
+\newblock In \emph{CVPR}, pp.\  7132--7141, 2018.
+
+\bibitem[Hu et~al.(2021)Hu, Yang, Cheng, Yang, and Ren]{hu2021time}
+Wenjie Hu, Yang Yang, Ziqiang Cheng, Carl Yang, and Xiang Ren.
+\newblock Time-series event prediction with evolutionary state graph.
+\newblock In \emph{WSDM}, pp.\  580--588, 2021.
+
+\bibitem[Hu et~al.(2020)Hu, Dong, Wang, and Sun]{hu2020heterogeneous}
+Ziniu Hu, Yuxiao Dong, Kuansan Wang, and Yizhou Sun.
+\newblock Heterogeneous graph transformer.
+\newblock In \emph{The Web Conference}, pp.\  2704--2710, 2020.
+
+\bibitem[Kalinicheva et~al.(2020)Kalinicheva, Ienco, Sublime, and
+  Trocan]{kalinicheva2020unsupervised}
+Ekaterina Kalinicheva, Dino Ienco, J{\'e}r{\'e}mie Sublime, and Maria Trocan.
+\newblock Unsupervised change detection analysis in satellite image time series
+  using deep learning combined with graph-based approaches.
+\newblock \emph{IEEE Journal of Selected Topics in Applied Earth Observations
+  and Remote Sensing}, 13:\penalty0 1450--1466, 2020.
+
+\bibitem[Kidger et~al.(2020)Kidger, Morrill, Foster, and
+  Lyons]{kidger2020neural}
+Patrick Kidger, James Morrill, James Foster, and Terry Lyons.
+\newblock Neural controlled differential equations for irregular time series.
+\newblock \emph{arXiv:2005.08926}, 2020.
+
+\bibitem[Kim et~al.(2021)Kim, Ye, and Kim]{kim2021learning}
+Byung-Hoon Kim, Jong~Chul Ye, and Jae-Jin Kim.
+\newblock Learning dynamic graph representation of brain connectome with
+  spatio-temporal attention.
+\newblock \emph{arXiv:2105.13495}, 2021.
+
+\bibitem[Kingma \& Ba(2014)Kingma and Ba]{adam_optimizer}
+Diederik~P Kingma and Jimmy Ba.
+\newblock {Adam: A method for stochastic optimization}.
+\newblock \emph{arXiv:1412.6980}, 2014.
+
+\bibitem[Li et~al.(2020{\natexlab{a}})Li, Liu, Wei, and Li]{li2020exploring}
+Liying Li, Yang Liu, Tongquan Wei, and Xin Li.
+\newblock Exploring inter-sensor correlation for missing data estimation.
+\newblock In \emph{IECON}, pp.\  2108--2114. IEEE, 2020{\natexlab{a}}.
+
+\bibitem[Li et~al.(2021)Li, Huang, and Zitnik]{li2021representation}
+Michelle~M Li, Kexin Huang, and Marinka Zitnik.
+\newblock Representation learning for networks in biology and medicine:
+  Advancements, challenges, and opportunities.
+\newblock \emph{arXiv:2104.04883}, 2021.
+
+\bibitem[Li \& Marlin(2016)Li and Marlin]{LiMarlin:2016}
+S.~C.-X. Li and B.~M. Marlin.
+\newblock A scalable end-to-end gaussian process adapter for irregularly
+  sampled time series classification.
+\newblock In \emph{NIPS}, pp.\  1804–1812, 2016.
+
+\bibitem[Li \& Marlin(2020)Li and Marlin]{li2020learning}
+Steven Cheng-Xian Li and Benjamin Marlin.
+\newblock Learning from irregularly-sampled time series: A missing data
+  perspective.
+\newblock In \emph{ICML}, pp.\  5937--5946. PMLR, 2020.
+
+\bibitem[Li et~al.(2020{\natexlab{b}})Li, Shang, Cao, Li, Tan, and
+  Liu]{li2020type}
+Xiaoxue Li, Yanmin Shang, Yanan Cao, Yangxi Li, Jianlong Tan, and Yanbing Liu.
+\newblock Type-aware anchor link prediction across heterogeneous networks based
+  on graph attention network.
+\newblock In \emph{AAAI}, volume~34, pp.\  147--155, 2020{\natexlab{b}}.
+
+\bibitem[Lin et~al.(2018)Lin, Hubacher, and Khan]{lin2018variational}
+Wu~Lin, Nicolas Hubacher, and Mohammad~Emtiyaz Khan.
+\newblock Variational message passing with structured inference networks.
+\newblock \emph{ICLR}, 2018.
+
+\bibitem[Little \& Rubin(2014)Little and Rubin]{LittleRubin:2014}
+R.~J. Little and D.~B. Rubin.
+\newblock \emph{Statistical Analysis with Missing Data}.
+\newblock John Wiley \& Sons, 3 edition, 2014.
+
+\bibitem[Ma et~al.(2020)Ma, Li, and Cottrell]{ma2020adversarial}
+Qianli Ma, Sen Li, and Garrison Cottrell.
+\newblock Adversarial joint-learning recurrent neural network for incomplete
+  time series classification.
+\newblock \emph{TPAMI}, 2020.
+
+\bibitem[Mikalsen et~al.(2021)Mikalsen, Soguero-Ruiz, Bianchi, Revhaug, and
+  Jenssen]{mikalsen2021time}
+Karl~{\O}yvind Mikalsen, Cristina Soguero-Ruiz, Filippo~Maria Bianchi, Arthur
+  Revhaug, and Robert Jenssen.
+\newblock Time series cluster kernels to exploit informative missingness and
+  incomplete label information.
+\newblock \emph{Pattern Recognition}, 115:\penalty0 107896, 2021.
+
+\bibitem[Neil et~al.(2016)Neil, Pfeiffer, and Liu]{phasedLSTM}
+Daniel Neil, Michael Pfeiffer, and Shih-Chii Liu.
+\newblock Phased lstm: accelerating recurrent network training for long or
+  event-based sequences.
+\newblock In \emph{NIPS}, pp.\  3889--3897, 2016.
+
+\bibitem[Nikolentzos et~al.(2020)Nikolentzos, Tixier, and
+  Vazirgiannis]{nikolentzos2020message}
+Giannis Nikolentzos, Antoine Tixier, and Michalis Vazirgiannis.
+\newblock Message passing attention networks for document understanding.
+\newblock In \emph{AAAI}, volume~34, pp.\  8544--8551, 2020.
+
+\bibitem[Ravuri et~al.(2021)Ravuri, Lenc, Willson, Kangin, Lam, Mirowski,
+  Athanassiadou, Kashem, Madge, Prudden, et~al.]{ravuri2021skillful}
+S~Ravuri, K~Lenc, M~Willson, D~Kangin, R~Lam, P~Mirowski, M~Athanassiadou,
+  S~Kashem, S~Madge, R~Prudden, et~al.
+\newblock Skillful precipitation nowcasting using deep generative models of
+  radar, arxiv.
+\newblock \emph{Nature}, 597:\penalty0 672–677, 2021.
+
+\bibitem[Reiss \& Stricker(2012)Reiss and Stricker]{ReissStricker:2012}
+Attila Reiss and Didier Stricker.
+\newblock Introducing a new benchmarked dataset for activity monitoring.
+\newblock In \emph{ISWC}, pp.\  108--109, 2012.
+
+\bibitem[Reyna et~al.(2020)Reyna, Josef, Jeter, Shashikumar, Westover, Nemati,
+  Clifford, and Sharma]{Reyna:2020}
+Matthew~A Reyna, Christopher~S Josef, Russell Jeter, Supreeth~P Shashikumar,
+  M~Brandon Westover, Shamim Nemati, Gari~D Clifford, and Ashish Sharma.
+\newblock Early prediction of sepsis from clinical data: The
+  physionet/computing in cardiology challenge 2019.
+\newblock \emph{Critical Care Medicine}, 48\penalty0 (2):\penalty0 210--217,
+  2020.
+
+\bibitem[Riba et~al.(2018)Riba, Fischer, Llad{\'o}s, and
+  Forn{\'e}s]{riba2018learning}
+Pau Riba, Andreas Fischer, Josep Llad{\'o}s, and Alicia Forn{\'e}s.
+\newblock Learning graph distances with message passing neural networks.
+\newblock In \emph{ICPR}, pp.\  2239--2244. IEEE, 2018.
+
+\bibitem[Schafer \& Graham(2002)Schafer and Graham]{SchaferGraham:2002}
+J.~L. Schafer and J.~W. Graham.
+\newblock Missing data: Our view of the state of the art.
+\newblock \emph{Psychological Methods}, 7\penalty0 (2), 2002.
+
+\bibitem[Sezer et~al.(2020)Sezer, Gudelek, and Ozbayoglu]{sezer2020financial}
+Omer~Berat Sezer, Mehmet~Ugur Gudelek, and Ahmet~Murat Ozbayoglu.
+\newblock Financial time series forecasting with deep learning: A systematic
+  literature review: 2005--2019.
+\newblock \emph{Applied Soft Computing}, 90:\penalty0 106181, 2020.
+
+\bibitem[Shan \& Oliva(2021)Shan and Oliva]{shan2021nrtsi}
+Siyuan Shan and Junier~B Oliva.
+\newblock Nrtsi: Non-recurrent time series imputation for irregularly-sampled
+  data.
+\newblock \emph{arXiv:2102.03340}, 2021.
+
+\bibitem[Shannon et~al.(2003)Shannon, Markiel, Ozier, Baliga, Wang, Ramage,
+  Amin, Schwikowski, and Ideker]{shannon2003cytoscape}
+Paul Shannon, Andrew Markiel, Owen Ozier, Nitin~S Baliga, Jonathan~T Wang,
+  Daniel Ramage, Nada Amin, Benno Schwikowski, and Trey Ideker.
+\newblock Cytoscape: a software environment for integrated models of
+  biomolecular interaction networks.
+\newblock \emph{Genome Research}, 13\penalty0 (11):\penalty0 2498--2504, 2003.
+
+\bibitem[Shukla \& Marlin(2018)Shukla and Marlin]{IP-Nets}
+Satya~Narayan Shukla and Benjamin Marlin.
+\newblock Interpolation-prediction networks for irregularly sampled time
+  series.
+\newblock In \emph{ICLR}, 2018.
+
+\bibitem[Shukla \& Marlin(2021)Shukla and Marlin]{mTAND_paper}
+Satya~Narayan Shukla and Benjamin Marlin.
+\newblock Multi-time attention networks for irregularly sampled time series.
+\newblock In \emph{ICLR}, 2021.
+
+\bibitem[Shukla \& Marlin(2020)Shukla and Marlin]{shukla2020survey}
+Satya~Narayan Shukla and Benjamin~M Marlin.
+\newblock A survey on principles, models and methods for learning from
+  irregularly sampled time series.
+\newblock 2020.
+
+\bibitem[Sousa et~al.(2020)Sousa, Pereira, and Soares]{sousa2020improving}
+Rafael~T Sousa, Lucas~A Pereira, and Anderson~S Soares.
+\newblock Improving irregularly sampled time series learning with dense
+  descriptors of time.
+\newblock \emph{arXiv:2003.09291}, 2020.
+
+\bibitem[Tan et~al.(2020)Tan, Ye, Yang, Liu, Ma, Yip, Wong, and
+  Yuen]{tan2020data}
+Qingxiong Tan, Mang Ye, Baoyao Yang, Siqi Liu, Andy~Jinhua Ma, Terry Cheuk-Fung
+  Yip, Grace Lai-Hung Wong, and PongChi Yuen.
+\newblock {DATA-GRU}: Dual-attention time-aware gated recurrent unit for
+  irregular multivariate time series.
+\newblock In \emph{AAAI}, volume~34, pp.\  930--937, 2020.
+
+\bibitem[Tipirneni \& Reddy(2021)Tipirneni and Reddy]{tipirneni2021self}
+Sindhu Tipirneni and Chandan~K Reddy.
+\newblock Self-supervised transformer for multivariate clinical time-series
+  with missing values.
+\newblock \emph{arXiv:2107.14293}, 2021.
+
+\bibitem[Vaswani et~al.(2017)Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez,
+  Kaiser, and Polosukhin]{vaswani2017attention}
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
+  Aidan~N Gomez, {\L}ukasz Kaiser, and Illia Polosukhin.
+\newblock Attention is all you need.
+\newblock In \emph{NIPS}, pp.\  5998--6008, 2017.
+
+\bibitem[Veli{\v{c}}kovi{\'c} et~al.(2018)Veli{\v{c}}kovi{\'c}, Cucurull,
+  Casanova, Romero, Li{\`o}, and Bengio]{velivckovic2018graph}
+Petar Veli{\v{c}}kovi{\'c}, Guillem Cucurull, Arantxa Casanova, Adriana Romero,
+  Pietro Li{\`o}, and Yoshua Bengio.
+\newblock Graph attention networks.
+\newblock In \emph{ICLR}, 2018.
+
+\bibitem[Wang et~al.(2020)Wang, Ma, Wang, Jin, Wang, Tang, Jia, and
+  Yu]{wang2020traffic}
+Xiaoyang Wang, Yao Ma, Yiqi Wang, Wei Jin, Xin Wang, Jiliang Tang, Caiyan Jia,
+  and Jian Yu.
+\newblock Traffic flow prediction via spatial temporal graph neural network.
+\newblock In \emph{The Web Conference 2020}, pp.\  1082--1092, 2020.
+
+\bibitem[Wang et~al.(2011)Wang, Zhang, Jiang, Zhang, Li, Gao, Li, and
+  Lu]{wangdama}
+Zhen Wang, Yang Zhang, Ai~Jiang, Ji~Zhang, Zhao Li, Jun Gao, Ke~Li, and Chenhao
+  Lu.
+\newblock Dama-net: A novel predictive model for irregularly asynchronously and
+  sparsely sampled multivariate time series.
+\newblock In \emph{ICML'W}, 2011.
+
+\bibitem[Wells et~al.(2013)Wells, Chagin, Nowacki, and Kattan]{Wells:2013}
+B.~J. Wells, K.~M. Chagin, A.~S. Nowacki, and M.~W. Kattan.
+\newblock Strategies for handling missing data in electronic health record
+  derived data.
+\newblock \emph{EGEMS}, 1\penalty0 (3), 2013.
+
+\bibitem[Wu et~al.(2020{\natexlab{a}})Wu, Xiao, Ding, Zhao, Wei, and
+  Huang]{wu2020adversarial}
+Sifan Wu, Xi~Xiao, Qianggang Ding, Peilin Zhao, Ying Wei, and Junzhou Huang.
+\newblock Adversarial sparse transformer for time series forecasting.
+\newblock In \emph{NeurIPS}, volume~33, 2020{\natexlab{a}}.
+
+\bibitem[Wu et~al.(2021)Wu, Ni, Cheng, Zong, Song, Chen, Liu, Zhang, Chen, and
+  Davidson]{wu2021dynamic}
+Yinjun Wu, Jingchao Ni, Wei Cheng, Bo~Zong, Dongjin Song, Zhengzhang Chen,
+  Yanchi Liu, Xuchao Zhang, Haifeng Chen, and Susan Davidson.
+\newblock Dynamic gaussian mixture based deep generative model for robust
+  forecasting on sparse multivariate time series.
+\newblock In \emph{AAAI}, 2021.
+
+\bibitem[Wu et~al.(2020{\natexlab{b}})Wu, Pan, Chen, Long, Zhang, and
+  Philip]{wu2020comprehensive}
+Zonghan Wu, Shirui Pan, Fengwen Chen, Guodong Long, Chengqi Zhang, and S~Yu
+  Philip.
+\newblock A comprehensive survey on graph neural networks.
+\newblock \emph{IEEE Transactions on Neural Networks and Learning Systems},
+  32\penalty0 (1):\penalty0 4--24, 2020{\natexlab{b}}.
+
+\bibitem[Wu et~al.(2020{\natexlab{c}})Wu, Pan, Long, Jiang, Chang, and
+  Zhang]{wu2020connecting}
+Zonghan Wu, Shirui Pan, Guodong Long, Jing Jiang, Xiaojun Chang, and Chengqi
+  Zhang.
+\newblock Connecting the dots: Multivariate time series forecasting with graph
+  neural networks.
+\newblock In \emph{KDD}, pp.\  753--763, 2020{\natexlab{c}}.
+
+\bibitem[Yang et~al.(2021)Yang, Wang, Yi, Zhu, Rehman, Zadeh, Poria, and
+  Morency]{yang2021mtag}
+Jianing Yang, Yongxin Wang, Ruitao Yi, Yuying Zhu, Azaan Rehman, Amir Zadeh,
+  Soujanya Poria, and Louis-Philippe Morency.
+\newblock Mtag: Modal-temporal attention graph for unaligned human multimodal
+  language sequences.
+\newblock In \emph{Proceedings of the 2021 Conference of the North American
+  Chapter of the Association for Computational Linguistics: Human Language
+  Technologies}, pp.\  1009--1021, 2021.
+
+\bibitem[Yun et~al.(2019)Yun, Jeong, Kim, Kang, and Kim]{yun2019graph}
+Seongjun Yun, Minbyul Jeong, Raehyun Kim, Jaewoo Kang, and Hyunwoo~J Kim.
+\newblock Graph transformer networks.
+\newblock In \emph{NeurIPS}, volume~32, pp.\  11983--11993, 2019.
+
+\bibitem[Zerveas et~al.(2021)Zerveas, Jayaraman, Patel, Bhamidipaty, and
+  Eickhoff]{zerveas2021transformer}
+George Zerveas, Srideepika Jayaraman, Dhaval Patel, Anuradha Bhamidipaty, and
+  Carsten Eickhoff.
+\newblock A transformer-based framework for multivariate time series
+  representation learning.
+\newblock In \emph{KDD}, pp.\  2114--2124, 2021.
+
+\bibitem[Zha et~al.(2022)Zha, Lai, Zhou, and Hu]{zha2022towards}
+Daochen Zha, Kwei-Herng Lai, Kaixiong Zhou, and Xia Hu.
+\newblock Towards similarity-aware time-series classification.
+\newblock \emph{SDM}, 2022.
+
+\bibitem[Zhang et~al.(2019)Zhang, Song, Chen, Feng, Lumezanu, Cheng, Ni, Zong,
+  Chen, and Chawla]{zhang2019deep}
+Chuxu Zhang, Dongjin Song, Yuncong Chen, Xinyang Feng, Cristian Lumezanu, Wei
+  Cheng, Jingchao Ni, Bo~Zong, Haifeng Chen, and Nitesh~V Chawla.
+\newblock A deep neural network for unsupervised anomaly detection and
+  diagnosis in multivariate time series data.
+\newblock In \emph{AAAI}, volume~33, pp.\  1409--1416, 2019.
+
+\bibitem[Zhang et~al.(2020)Zhang, Xu, Arnab, and Torr]{zhang2020dynamic}
+Li~Zhang, Dan Xu, Anurag Arnab, and Philip~HS Torr.
+\newblock Dynamic graph message passing networks.
+\newblock In \emph{CVPR}, pp.\  3726--3735, 2020.
+
+\bibitem[Zhou et~al.(2020)Zhou, Cui, Hu, Zhang, Yang, Liu, Wang, Li, and
+  Sun]{zhou2020graph}
+Jie Zhou, Ganqu Cui, Shengding Hu, Zhengyan Zhang, Cheng Yang, Zhiyuan Liu,
+  Lifeng Wang, Changcheng Li, and Maosong Sun.
+\newblock Graph neural networks: A review of methods and applications.
+\newblock \emph{AI Open}, 1:\penalty0 57--81, 2020.
+
+\end{thebibliography}

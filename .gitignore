@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+
+# PyTorch
+*.pth
+*.pt.tmp
+*.pt
+
+# Jupyter
+.ipynb_checkpoints
+
+# Data (large files - don't commit these)
+data/
+
+# Results
+results/checkpoints/*.pt
+results/logs/*.log
+wandb/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Keep directory structure
+!results/checkpoints/.gitkeep
+!results/logs/.gitkeep
+!results/plots/.gitkeep
