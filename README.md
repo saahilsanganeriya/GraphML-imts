@@ -100,6 +100,27 @@ dataset = PhysioNetGraphDataset('data/physionet/processed', split='train')
 # Automatically loads pre-built graphs
 ```
 
+## Training RainDrop Baseline
+
+```bash
+# Test the pipeline first
+python test_raindrop_training.py
+
+# Quick test (2 epochs)
+python src/models/raindrop/train_raindrop_forecasting.py --epochs 2
+
+# Full training (50 epochs)
+python src/models/raindrop/train_raindrop_forecasting.py --epochs 50
+
+# With WandB logging
+python src/models/raindrop/train_raindrop_forecasting.py --epochs 50 --use-wandb
+
+# Evaluate on test set
+python src/models/raindrop/evaluate_raindrop.py --checkpoint results/raindrop/best_model.pt
+```
+
+**See `docs/RAINDROP_TRAINING.md` for detailed guide.**
+
 
 ## EDA (Optional)
 
