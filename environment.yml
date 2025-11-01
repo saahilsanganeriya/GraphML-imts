@@ -1,13 +1,11 @@
 name: graphml-imts
 channels:
-  - pytorch
   - conda-forge
   - defaults
 
 dependencies:
   - python=3.10
-  - pytorch::pytorch=2.0.0
-  - pytorch::torchvision=0.15.0
+  - libstdcxx-ng  # Provides newer libstdc++ for matplotlib (Linux only, ignored on macOS)
   - numpy<2.0
   - pandas
   - scikit-learn
@@ -16,3 +14,6 @@ dependencies:
   - tqdm
   - pyyaml
   - jupyter
+  - pip
+  # Note: PyTorch NOT included here - install separately based on your platform
+  # Run: python install_pytorch.py after creating this environment
