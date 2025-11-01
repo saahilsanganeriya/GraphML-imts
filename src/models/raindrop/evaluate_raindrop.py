@@ -83,6 +83,10 @@ def evaluate_with_details(model, data, batch_size, device):
             
             # Process each patient
             for j, (patient_targets, patient_mask) in enumerate(zip(targets, target_masks)):
+                # Move to CPU for processing
+                patient_targets = patient_targets.cpu()
+                patient_mask = patient_mask.cpu()
+                
                 # Average target over time per variable
                 sum_targets = (patient_targets * patient_mask).sum(dim=0)  # (36,)
                 count_obs = patient_mask.sum(dim=0)  # (36,)

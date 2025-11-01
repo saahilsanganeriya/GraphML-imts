@@ -7,17 +7,28 @@ Forecasting ICU patient vitals using graph neural networks. Class project for GM
 ## Quick Start
 
 ```bash
-# Install
-mamba env create -f environment.yml
+# 1. Create conda environment
+conda env create -f environment.yml
 conda activate graphml-imts
-pip install torch-geometric torch-scatter torch-sparse
 
-# Preprocess data (~20 min)
+# 2. Install PyTorch (automatically detects your platform)
+python install_pytorch.py
+# This installs:
+#   - CUDA version (Linux + NVIDIA GPU)
+#   - MPS version (macOS + Apple Silicon)
+#   - CPU version (fallback)
+
+# 3. Preprocess data (~20 min)
 python scripts/preprocess_data.py
 
-# Verify it worked
-python test_setup.py
+# 4. Verify everything works
+python test_raindrop_training.py
 ```
+
+**Supported Platforms:**
+- ✅ Linux + NVIDIA GPU (CUDA)
+- ✅ macOS + Apple Silicon (MPS)
+- ✅ Linux/macOS/Windows (CPU)
 
 ## What We're Doing
 
@@ -100,26 +111,19 @@ dataset = PhysioNetGraphDataset('data/physionet/processed', split='train')
 # Automatically loads pre-built graphs
 ```
 
-## Training RainDrop Baseline
+## Baselines
 
+### RainDrop
+
+Graph-based model learning sensor dependencies. See `src/models/raindrop/raindrop_readme.md` for details.
+
+**Quick Start**:
 ```bash
-# Test the pipeline first
 python test_raindrop_training.py
-
-# Quick test (2 epochs)
-python src/models/raindrop/train_raindrop_forecasting.py --epochs 2
-
-# Full training (50 epochs)
 python src/models/raindrop/train_raindrop_forecasting.py --epochs 50
-
-# With WandB logging
-python src/models/raindrop/train_raindrop_forecasting.py --epochs 50 --use-wandb
-
-# Evaluate on test set
-python src/models/raindrop/evaluate_raindrop.py --checkpoint results/raindrop/best_model.pt
 ```
 
-**See `docs/RAINDROP_TRAINING.md` for detailed guide.**
+**Results**: Val RMSE 0.561, Test RMSE 0.596 (see report for details)
 
 
 ## EDA (Optional)
@@ -148,8 +152,8 @@ Creates 10+ visualizations in `eda_results/`. See `EDA_SUMMARY.md` for stats.
 
 **Read these**:
 - `docs/DATA_PREPROCESSING.md` - How preprocessing works
-- `docs/RAINDROP.md` - RainDrop baseline
 - `EDA_SUMMARY.md` - Dataset stats
+- `Reports/midterm.tex` - Midterm report with results
 
 **Code**:
 - `src/data/preprocessing.py` - Preprocessing pipeline

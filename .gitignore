@@ -11,10 +11,9 @@ build/
 venv/
 env/
 
-# PyTorch
+# PyTorch (exclude globally except in specific cases)
 *.pth
 *.pt.tmp
-*.pt
 
 # Jupyter
 .ipynb_checkpoints
@@ -22,18 +21,17 @@ env/
 # Data (large files - don't commit these)
 data/
 
-# Results
-results/checkpoints/*.pt
-results/logs/*.log
+# Results - exclude only large model files, keep JSON/TXT/PNG/etc
+results/**/*.pt
+results/**/*.pth
 wandb/
+
+# Reports figures - always include
+!Reports/raindrop_results/
+!Reports/**/*.png
 
 # IDE
 .vscode/
 .idea/
 *.swp
 .DS_Store
-
-# Keep directory structure
-!results/checkpoints/.gitkeep
-!results/logs/.gitkeep
-!results/plots/.gitkeep

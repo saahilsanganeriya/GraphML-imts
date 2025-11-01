@@ -50,7 +50,7 @@ try:
     # Take small batch
     batch_patients = train_data[:4]
     src, times, static, lengths, targets, target_masks, target_times = \
-        convert_to_raindrop_format(batch_patients, device='cpu')
+        convert_to_raindrop_format(batch_patients, device=device)
     
     print(f"   ✓ src shape: {src.shape} (should be (T, B, 72))")
     print(f"   ✓ times shape: {times.shape} (should be (T, B))")
@@ -75,18 +75,18 @@ try:
     global_structure = torch.ones(36, 36)
     model = Raindrop(
         d_inp=36,
-        d_model=64,
+        d_model=72,  # Must be multiple of d_inp (36) for proper dimensions
         nhead=4,
         nhid=128,
         nlayers=2,
         dropout=0.3,
-        max_len=215,
+        max_len=216,  # Actual max sequence length from data
         d_static=9,
         n_classes=2,
         forecasting_mode=True,
         n_forecast_steps=6,
         global_structure=global_structure
-    )
+    ).to(device)
     
     n_params = sum(p.numel() for p in model.parameters())
     print(f"   ✓ Model created ({n_params:,} parameters)")

@@ -56,8 +56,8 @@ def parse_args():
                         help='Path to preprocessed data directory')
     
     # Model
-    parser.add_argument('--d-model', type=int, default=64,
-                        help='Model dimension')
+    parser.add_argument('--d-model', type=int, default=72,
+                        help='Model dimension (must be multiple of d_inp=36)')
     parser.add_argument('--nhead', type=int, default=4,
                         help='Number of attention heads')
     parser.add_argument('--nlayers', type=int, default=2,
@@ -81,6 +81,8 @@ def parse_args():
     parser.add_argument('--device', type=str, default='auto',
                         choices=['auto', 'cuda', 'mps', 'cpu'],
                         help='Device to use (auto selects best available)')
+    parser.add_argument('--use-amp', action='store_true',
+                        help='Use automatic mixed precision (AMP) for faster training on GPU')
     
     # Logging
     parser.add_argument('--use-wandb', action='store_true',
@@ -213,6 +215,11 @@ def convert_to_raindrop_format(patients, device='cpu'):
     static = static.to(device)
     lengths = lengths.to(device)
     
+    # Move targets to device (they're lists, so move each element)
+    batch_targets = [t.to(device) for t in batch_targets]
+    batch_target_masks = [t.to(device) for t in batch_target_masks]
+    batch_target_times = [t.to(device) for t in batch_target_times]
+    
     return src, times, static, lengths, batch_targets, batch_target_masks, batch_target_times
 
 
@@ -279,7 +286,7 @@ def compute_loss_and_metrics(predictions, targets, target_masks, target_times, c
     return total_loss, all_preds, all_targets
 
 
-def train_epoch(model, data, batch_size, optimizer, criterion, device, distance_weight=0.02):
+def train_epoch(model, data, batch_size, optimizer, criterion, device, distance_weight=0.02, use_amp=False, scaler=None):
     """Train one epoch."""
     model.train()
     
@@ -300,24 +307,37 @@ def train_epoch(model, data, batch_size, optimizer, criterion, device, distance_
         src, times, static, lengths, targets, target_masks, target_times = \
             convert_to_raindrop_format(batch_patients, device=device)
         
-        # Forward pass
-        predictions, distance, _ = model(src, static, times, lengths)
-        # predictions: (B, 36, n_forecast_steps)
-        
-        # Compute loss
-        loss, batch_preds, batch_targets = compute_loss_and_metrics(
-            predictions, targets, target_masks, target_times, criterion
-        )
-        
-        # Add distance regularization (from RainDrop)
-        if distance is not None:
-            loss = loss + distance_weight * distance
-        
-        # Backward pass
-        optimizer.zero_grad()
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        optimizer.step()
+        # Forward pass (with optional AMP)
+        if use_amp and scaler is not None:
+            with torch.amp.autocast(device_type=device.type):
+                predictions, distance, _ = model(src, static, times, lengths)
+                loss, batch_preds, batch_targets = compute_loss_and_metrics(
+                    predictions, targets, target_masks, target_times, criterion
+                )
+                if distance is not None:
+                    loss = loss + distance_weight * distance
+            
+            # Backward pass with gradient scaling
+            optimizer.zero_grad()
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            # Regular forward pass
+            predictions, distance, _ = model(src, static, times, lengths)
+            loss, batch_preds, batch_targets = compute_loss_and_metrics(
+                predictions, targets, target_masks, target_times, criterion
+            )
+            if distance is not None:
+                loss = loss + distance_weight * distance
+            
+            # Regular backward pass
+            optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            optimizer.step()
         
         # Accumulate
         total_loss += loss.item()
@@ -543,7 +563,7 @@ def main():
         nhid=args.d_model * 2,  # Typical choice
         nlayers=args.nlayers,
         dropout=args.dropout,
-        max_len=215,  # Max sequence length
+        max_len=216,  # Max sequence length in data
         d_static=9,
         n_classes=2,  # Ignored in forecasting mode
         forecasting_mode=True,
@@ -564,6 +584,12 @@ def main():
     )
     criterion = nn.MSELoss()
     
+    # Mixed precision training setup
+    scaler = None
+    if args.use_amp and (torch.cuda.is_available() or torch.backends.mps.is_available()):
+        scaler = torch.cuda.amp.GradScaler() if torch.cuda.is_available() else torch.amp.GradScaler('cpu')
+        print(f"\n✓ Using Automatic Mixed Precision (AMP) for faster training")
+    
     # Training loop
     print("\nTraining...")
     print("-" * 80)
@@ -577,7 +603,8 @@ def main():
     for epoch in range(1, args.epochs + 1):
         # Train
         train_metrics = train_epoch(
-            model, train_data, args.batch_size, optimizer, criterion, device, args.distance_weight
+            model, train_data, args.batch_size, optimizer, criterion, device, 
+            args.distance_weight, args.use_amp, scaler
         )
         
         # Evaluate
