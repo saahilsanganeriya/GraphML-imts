@@ -1,0 +1,598 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Graph ML for IMTS - Midterm Report
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[a4paper,10.5pt,twoside]{article}
+\hyphenpenalty=8000
+\textwidth=125mm
+\textheight=200mm
+\usepackage[top=1cm, bottom=1cm, inner=2cm, outer=2cm, includehead]{geometry}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhead{}
+\fancyfoot{}
+\raggedbottom
+\usepackage{xurl}
+\usepackage{graphicx}
+\usepackage{alltt}
+\usepackage{amsmath}
+\usepackage[hidelinks, pdftex]{hyperref}
+\urlstyle{same}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{subcaption}
+\usepackage{csquotes}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\usepackage[english]{babel}
+\usepackage{subcaption}
+\usepackage{float}
+
+\begin{document}
+\fancyhead[LE]{\thepage\ \ \ \ Roudbari, Gianantonio, Sanganeria, Reza}
+\fancyhead[RO]{Graphs for Irregular Multivariate Time Series - Midterm Report\ \ \ \ \thepage}
+
+\begin{center}
+\LARGE
+\textbf{Graphs for Irregular Multivariate Time Series}\\[8pt]
+\Large
+\textbf{Midterm Progress Report}\\[12pt]
+\normalsize
+\textbf{Asal Roudbari, Luca Gianantonio, Saahil Sanganeria, Nawal Reza}\\[4pt]
+\textit{Graph Machine Learning - Fall 2025}\\[2pt]
+\end{center}
+
+\section{Project Overview}\label{s:overview}
+
+\subsection{Motivation and Goals}
+Irregular Multivariate Time Series (IMTS) are ubiquitous in critical healthcare applications, where observations are collected at non-uniform intervals with varying sampling rates across different physiological variables \cite{zhang2024irregular}. Unlike regular time series, IMTS present unique challenges: \textbf{intra-series} irregularity due to uneven sampling intervals, \textbf{inter-series} asynchrony from different variables being sampled at distinct rates, and the inherent multi-scale nature of temporal patterns that span different granularities \cite{luohi}.
+
+Traditional approaches using imputation or Canonical Pre-Alignment (CPA) often distort temporal patterns and obscure meaningful missingness signals—in clinical settings, the absence of a measurement can itself carry information (e.g., skipping a test might imply a certain clinical decision). Graph Neural Networks (GNNs) offer a promising direction by naturally representing measurements as nodes and modeling both temporal relationships (within variables) and inter-variable dependencies (between sensors). Recent research has shown that combining intra-series and inter-series graph dynamics yields more accurate predictions than modeling either alone \cite{hajisafi2024wavegnn}.
+
+\textbf{Project Goal:} Our project focuses on graph-based forecasting for irregular healthcare time series, using the PhysioNet ICU dataset as a testbed. We aim to: (1) implement and benchmark strong baseline methods for IMTS forecasting (GRU-D, Latent ODE, SeFT, RainDrop, WaveGNN, T-PatchGNN, KAFNet), (2) implement Hi-Patch \cite{luohi} as our core model, and (3) propose novel improvements including learnable graph structures and generative modeling components. By the end, we aim to demonstrate improved forecasting of patient vital signs, showcasing the power of graph-based learning in critical healthcare applications.
+
+\subsection{Team Contributions}
+\begin{itemize}
+    \item \textbf{Asal Roudbari:} Latent ODE, WaveGNN, Hi-Patch implementation
+    \item \textbf{Luca Gianantonio:} SeFT, KAFNet, Learnable Graphs (novelty)
+    \item \textbf{Saahil Sanganeria:} Data Preprocessing and Cleaning, RainDrop, Evaluation
+    \item \textbf{Nawal Reza:} GRU-D, T-PatchGNN, Generative VAE (novelty)
+\end{itemize}
+
+\section{Dataset and Exploratory Data Analysis}\label{s:data}
+
+\subsection{Dataset Overview}
+We utilize the PhysioNet/Computing in Cardiology Challenge 2012 dataset \cite{silva2012physionet}, a benchmark dataset for clinical prediction tasks containing electronic health records from 12,000 ICU patients. Each patient record spans a 48-hour ICU stay period, capturing the critical initial phase of intensive care where accurate monitoring and prediction are paramount for clinical decision-making.
+
+\textbf{Variable Structure.} The dataset comprises 41 physiological and clinical variables organized into two distinct categories:
+\begin{enumerate}
+    \item \textbf{General descriptors (5 variables):} Age, Gender, Height, ICUType, and Weight, recorded at admission with 100\% coverage across all patients.
+    \item \textbf{Time series variables (36 variables):} Including vital signs (HR, RespRate, Temp, SysABP, DiasABP, MAP), laboratory values (Glucose, pH, HCT, K, Na, BUN, Creatinine), and clinical interventions (MechVent, FiO2). The time series variables exhibit highly variable coverage, ranging from 7.4\% (TroponinI) to 99.0\% (HCT) of patients, reflecting clinical protocols where invasive tests are ordered based on patient acuity and specific medical indications.
+\end{enumerate}
+
+\textbf{Temporal Characteristics and Irregularity.} The dataset exemplifies the challenges of irregular multivariate time series in healthcare settings. Our analysis reveals a mean sequence length of 77.0 ± 23.3 observations per patient, with an overall data sparsity of 85.7\%. The temporal irregularity is characterized by a mean inter-measurement interval of 0.64 ± 0.49 hours and a median interval of 0.50 hours, with substantial variation (coefficient of variation: 0.63 ± 0.18) reflecting the adaptive nature of clinical monitoring. Measurement frequency averages 1.59 ± 0.48 measurements per hour, with higher-acuity patients receiving more intensive monitoring protocols.
+
+\textbf{ICU Type Heterogeneity.} The dataset encompasses four distinct ICU types: Medical ICU (38.9\%), Surgical ICU (26.1\%), Cardiac Surgery Recovery (20.9\%), and Coronary Care (14.1\%). This heterogeneity introduces additional complexity as different ICU types follow distinct monitoring protocols and exhibit varying measurement intensities, creating a multi-modal data distribution that reflects the diversity of critical care settings.
+
+\subsection{Exploratory Data Analysis}
+Our comprehensive exploratory data analysis reveals several critical insights that inform our modeling approach and validate the complexity of irregular multivariate time series in clinical settings.
+
+\textbf{Missing Data Patterns and Clinical Significance.} The missingness patterns in our dataset are far from random, reflecting the underlying clinical decision-making processes that govern ICU monitoring protocols. High-coverage variables such as HCT (99.0\% patient coverage), BUN (98.8\%), and Creatinine (98.8\%) represent routine laboratory panels ordered for most ICU patients, while specialized tests like TroponinI (7.4\% coverage) and Cholesterol (9.6\% coverage) are ordered based on specific clinical indications. This clinical meaningfulness of missingness presents both challenges and opportunities for machine learning models, as the absence of certain measurements may carry as much information as their presence.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{eda_results/missingness_heatmap.png}
+\caption{Missingness patterns across variables and patients showing the non-random nature of missing data in clinical settings. Darker regions indicate higher missingness rates, with clear patterns reflecting clinical protocols and measurement priorities.}
+\label{fig:missingness}
+\end{figure}
+
+\textbf{Physiological Variable Distributions and Outlier Patterns.} Analysis of key physiological variables reveals clinically plausible distributions with notable outlier patterns that reflect the severity of illness in ICU populations. Heart rate (HR) shows a mean of 88.23 ± 18.54 bpm with a range extending to 300 bpm, indicating episodes of severe tachycardia. Glucose levels exhibit substantial variability (148.44 ± 81.99 mg/dL, range 24-816 mg/dL), reflecting both diabetic patients and stress-induced hyperglycemia common in critical illness. These distributions highlight the need for robust models capable of handling extreme values that, while statistically outlying, may be clinically significant.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{eda_results/variable_distributions.png}
+\caption{Distribution of key physiological variables showing clinical ranges and outlier patterns. The distributions reflect the severity of illness in ICU populations, with notable outliers that are clinically meaningful rather than measurement errors.}
+\label{fig:distributions}
+\end{figure}
+
+\textbf{Temporal Irregularity and Multi-scale Patterns.} The temporal structure reveals significant irregularity across multiple scales. Within-patient measurement intervals show high variability (CV = 0.63 ± 0.18), with some measurements occurring as frequently as every 2 minutes while others span gaps exceeding 14 hours. This temporal irregularity varies systematically by variable type: continuous monitoring variables like HR and blood pressure show more regular sampling patterns, while laboratory values and episodic interventions exhibit sparser, event-driven timing.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{eda_results/irregularity_analysis.png}
+\caption{Multi-dimensional analysis of time series irregularity showing the relationship between measurement frequency, data sparsity, temporal variability, and variable coverage.}
+\label{fig:irregularity}
+\end{figure}
+
+\textbf{Inter-variable Correlations and Physiological Relationships.} Correlation analysis of synchronized measurements reveals clinically meaningful relationships that validate the potential for graph-based modeling. Strong correlations between systolic and diastolic blood pressure (r = 0.26) and weaker but significant relationships between respiratory rate and pH (r = 0.15) reflect known physiological mechanisms. However, the sparsity of synchronized measurements (only 14.3\% of possible observations are present) emphasizes the challenge of capturing these relationships in traditional correlation-based analyses, supporting the need for more sophisticated graph-based approaches that can leverage indirect connections and temporal patterns.
+
+\section{Data Preprocessing}
+We have implemented a comprehensive data preprocessing pipeline that transforms raw PhysioNet text files into clean PyTorch tensors suitable for graph-based models. The pipeline includes:
+
+\subsection{Data Loading and Parsing}
+
+Downloaded PhysioNet sets A, B, and C (~1GB, 12,000 patients) and parsed text files, converting timestamps from HH:MM format to normalized hours, creating observation masks for missing values.
+
+\subsection{Data Validation}
+
+Removed only NaN and infinite values while deliberately \textbf{keeping outliers} (e.g., HR=300, Glucose=800), as these represent real ICU patients in critical condition rather than measurement errors. This decision aligns with our goal of building robust models capable of handling extreme clinical values.
+
+\subsection{Train/Validation/Test Split}
+
+Implemented random 60/20/20 split with seed=42 for reproducibility, ensuring all team members use identical splits for fair model comparison.
+
+\subsection{Normalization}
+
+Applied z-score normalization using training set statistics only, with mean and standard deviation computed per variable across all training patients.
+
+\subsection{Graph Construction}
+
+We pre-built observation graphs for all 12,000 patients to accelerate training and ensure consistency across models. Our graph construction strategy is motivated by the need to capture both temporal dependencies within individual physiological variables and physiological correlations between different variables measured simultaneously.
+
+\textit{Node Representation.} Each measurement observation becomes a node in the patient's graph. For a patient with $M$ total observations across all variables during the 48-hour period, we construct a graph $G = (V, E)$ where $|V| = M$. Each node $v_i \in V$ is characterized by three attributes:
+\begin{itemize}
+    \item \textit{Timestamp} $t_i \in [0, 1]$: Normalized time of observation (48 hours mapped to [0,1])
+    \item \textit{Variable index} $v_i \in \{1, ..., 36\}$: Which physiological variable was measured
+    \item \textit{Value} $z_i \in \mathbb{R}$: Z-score normalized measurement value
+\end{itemize}
+
+\textit{Edge Construction.} We construct three types of edges to capture different aspects of the temporal and physiological relationships:
+
+\textbf{(a) Temporal edges (intra-series):} Connect consecutive measurements of the same variable to capture temporal evolution. For each variable $v$, we create directed edges between observations $(t_i, v, z_i)$ and $(t_j, v, z_j)$ if $0 < t_j - t_i \leq \Delta t_{\text{max}}$, where $\Delta t_{\text{max}} = 2$ hours (normalized: 0.042). This threshold was chosen based on our EDA findings showing mean inter-measurement interval of 0.64 ± 0.49 hours, ensuring we capture most consecutive measurements while avoiding spurious long-range connections. These edges enable the model to learn temporal patterns such as trends, periodicity, and sudden changes in individual variables.
+
+\textbf{(b) Variable edges (inter-series):} Connect different variables measured at the same timestamp to capture physiological correlations. For observations $(t_i, v_a, z_i)$ and $(t_j, v_b, z_j)$ where $v_a \neq v_b$, we create an undirected edge if $|t_i - t_j| < \epsilon$ (we use $\epsilon = 0.001$, approximately 3 minutes). This captures synchronized measurements that often occur during clinical assessments (e.g., vital signs taken together during rounds). These edges allow the model to learn inter-variable dependencies such as the relationship between heart rate and blood pressure, or between respiratory rate and oxygen saturation.
+
+\textbf{(c) Self-loops:} Each node includes a self-loop to preserve its own features during message passing, which improves training stability and allows the model to balance information from neighbors with the node's own state.
+
+\textit{Graph Statistics.} Based on our EDA showing a mean sequence length of 77.0 ± 23.3 observations per patient across 36 variables, and our graph construction methodology, we estimate approximately 150 nodes and 500 edges per patient on average. The graphs are relatively sparse, with most nodes having low degree, which is suitable for efficient GNN processing and reflects the clinical sparsity of the data (85.7\% missing values).
+
+\textit{Design Rationale.} Our graph construction approach differs from traditional time series representations in several key ways: (1) we avoid imputation, preserving the natural sparsity and irregularity of clinical data; (2) we explicitly model both temporal and cross-variable relationships rather than treating variables independently; (3) we use observation-level rather than variable-level graphs, allowing fine-grained temporal modeling; and (4) we maintain the clinical meaningfulness of missingness by not creating edges to non-existent observations.
+
+Each patient record in our final dataset contains: (record\_id, timestamps, values, mask) where timestamps are normalized to [0,1], values are z-score normalized (T, 41), and mask is binary (T, 41). The corresponding graph is stored separately and loaded on-demand during training.
+
+\section{Problem Formulation}\label{s:problem}
+
+\textbf{Definition 1 (Irregular Multivariate Time Series).} An irregular multivariate time series is defined as a collection of observations $\mathcal{S} = \{(t_j, z_j, v_j)\}_{j=1}^M$, where:
+\begin{itemize}
+    \item $t_j \in \mathbb{R}^+$ represents the timestamp of the $j$-th observation
+    \item $z_j \in \mathbb{R}$ denotes the observed value
+    \item $v_j \in \{1, 2, \ldots, V\}$ indicates the variable index
+    \item $M$ is the total number of observations across all variables
+    \item $V$ is the total number of variables (36 temporal variables in our case)
+\end{itemize}
+
+\textbf{Definition 2 (Forecasting Query).} A forecasting query is represented as $q_k = (t_k^f, v_k^f)$, where $t_k^f$ denotes the future timestamp and $v_k^f$ specifies the target variable for which we want to predict the value.
+
+\textbf{Problem Statement (IMTS Forecasting).} Given a historical irregular multivariate time series $\mathcal{S}_{\text{hist}} = \{(t_j, z_j, v_j) | t_j \leq t_{\text{split}}\}_{j=1}^{M_h}$ and a set of forecasting queries $\mathcal{Q} = \{q_k = (t_k^f, v_k^f) | t_k^f > t_{\text{split}}\}_{k=1}^{K}$, the objective is to learn a forecasting function $f: (\mathcal{S}_{\text{hist}}, \mathcal{Q}) \rightarrow \hat{\mathbf{Z}}$ that predicts the corresponding values:
+
+$$\hat{\mathbf{Z}} = \{\hat{z}_k | k = 1, 2, \ldots, K\}$$
+
+where $\hat{z}_k$ is the predicted value for query $q_k$.
+
+\textbf{Task Specification.} In this project, we utilize the first 24 hours (timestamps 0 to 0.5 normalized) as input history and forecast values in the 24-30 hour window (timestamps 0.5 to 0.625 normalized). This is a \textbf{sequence prediction} task where we predict values at each observed (timestamp, variable) pair in the forecast window, not a single point per variable. Evaluation is performed only on observed values, respecting the mask to handle missing data appropriately.
+
+
+\section{Baseline Model Implementations}\label{s:baselines}
+
+\subsection{RainDrop}
+
+\textbf{Model Description.} RainDrop \cite{zhang2021graph} models irregularly sampled multivariate time series by learning latent sensor dependency graphs through neural message passing. Unlike traditional approaches that treat observations sequentially, RainDrop constructs a \textit{sensor graph} $\mathcal{G}_i$ for each sample $\mathcal{S}_i$ where nodes represent sensors (variables) and directed edges $e_{i,uv} \in [0,1]$ denote learned dependencies between sensors $u$ and $v$. When an observation $x_{i,u}^t$ is recorded for sensor $u$ at time $t$, RainDrop (1) embeds the observation using sensor-specific transformations $\bm{h}_{i,u}^t = \sigma(x_{i,u}^t \bm{R}_u)$, (2) propagates messages from $u$ to neighboring sensors in the graph via $\bm{h}_{i,v}^t = \sigma(\bm{h}_{i,u}^t \bm{w}_u \bm{w}_v^T \alpha_{i,uv}^t e_{i,uv})$, where $\alpha_{i,uv}^t$ is a time-varying attention weight and $e_{i,uv}$ is the learned edge weight, (3) aggregates observation embeddings into sensor embeddings using temporal self-attention, and (4) produces sample embeddings by aggregating across all sensors. This hierarchical architecture naturally handles irregular sampling by generating embeddings for unobserved sensors through message passing from active (observed) sensors, effectively leveraging inter-sensor dependencies to impute missing information in the embedding space.
+
+\textbf{Implementation Details.} We adapted the official RainDrop implementation \cite{zhang2021graph} from classification to forecasting with minimal modifications. The key changes were: (1) adding a \texttt{forecasting\_mode} parameter, (2) modifying the output head from 2 classes to predict 36 variables $\times$ 6 forecast timesteps, and (3) reshaping output to (batch, 36, 6). All other components—sensor graph construction, graph attention layers, transformer encoder, and message passing mechanisms—remain unchanged from the original implementation.
+
+Our implementation is fully device-agnostic, supporting CUDA (NVIDIA GPUs), MPS (Apple Silicon), and CPU execution. We made all tensor operations device-independent by replacing hardcoded \texttt{.cuda()} calls with dynamic device placement. The model uses a sensor graph where nodes represent the 36 temporal variables (not individual observations), and edges are learned via graph attention, allowing the model to discover inter-variable dependencies.
+
+\textbf{Training Configuration.} We trained for 50 epochs with batch size 64, learning rate $10^{-4}$, and Adam optimizer. Model architecture: $d_{\text{model}}=72$ (must be multiple of $d_{\text{inp}}=36$), 4 attention heads, 2 transformer layers, dropout 0.3. We used gradient clipping (max norm 1.0) and RainDrop's distance regularization loss (weight 0.02) to encourage consistent attention patterns across the batch. Training on NVIDIA A100 took approximately 8.5 minutes for 50 epochs; no early stopping was used as validation loss continued improving.
+
+\textbf{Training Curves.} Figure~\ref{fig:raindrop_curves} shows steady convergence over 50 epochs. Training loss decreased from 0.719 to 0.371 (MSE), while validation loss improved from 0.538 to 0.291. Both train and validation RMSE showed consistent improvement: train RMSE dropped from 0.869 to 0.638, and validation RMSE from 0.756 to 0.561. The RMSE/MAE ratio remained stable around 1.5-1.7, indicating the model handles outliers reasonably well without extreme sensitivity. R² scores improved from near-zero to 0.48 (train) and 0.52 (validation), demonstrating the model learns meaningful patterns despite the irregular, sparse nature of the data.
+
+\textbf{Results.} Table~\ref{tab:raindrop_results} summarizes performance on validation and test sets. The model achieved validation RMSE of 0.561, MAE of 0.365, and R² of 0.519. Test performance was comparable: RMSE 0.596, MAE 0.368, R² 0.494. The slight degradation from validation to test ($\sim$6\% increase in RMSE) indicates reasonable generalization. The RMSE/MAE ratio of 1.54-1.62 suggests the model is not overly sensitive to outliers, despite the presence of extreme clinical values (HR$=$300, Glucose$=$800) in our dataset.
+
+\begin{table}[h]
+\centering
+\caption{RainDrop forecasting performance (50 epochs, all metrics on z-score normalized values)}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Split} & \textbf{RMSE} & \textbf{MAE} & \textbf{R²} & \textbf{RMSE/MAE} & \textbf{Loss} \\
+\hline
+Training & 0.638 & 0.371 & 0.479 & 1.719 & 0.371 \\
+Validation & 0.561 & 0.365 & 0.519 & 1.538 & 0.291 \\
+Test & 0.596 & 0.368 & 0.494 & 1.621 & 0.337 \\
+\hline
+\end{tabular}
+\label{tab:raindrop_results}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{raindrop_results/loss_curves.png}
+\caption{RainDrop training and validation loss curves over 50 epochs. Both losses decrease monotonically, indicating stable convergence without overfitting. Validation loss continued improving through epoch 50, suggesting longer training could yield further gains.}
+\label{fig:raindrop_curves}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{raindrop_results/metrics_over_time.png}
+\caption{RMSE and MAE progression during training. Both metrics show consistent improvement with validation RMSE decreasing from 0.756 to 0.561 and MAE from 0.521 to 0.365 over 50 epochs.}
+\label{fig:raindrop_metrics}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{cc}
+\includegraphics[width=0.48\textwidth]{raindrop_results/predictions_vs_actual.png} &
+\includegraphics[width=0.48\textwidth]{raindrop_results/test_results/predictions_vs_actual.png} \\
+(a) Validation Set & (b) Test Set \\
+\end{tabular}
+\caption{Scatter plots of predicted vs. actual values on (a) validation and (b) test sets. Points cluster along the diagonal (perfect prediction line) with some deviation for extreme values, reflecting the model's tendency toward conservative predictions under MSE loss. Test set performance closely matches validation, indicating good generalization.}
+\label{fig:raindrop_scatter}
+\end{figure}
+
+\textbf{Per-Patient Analysis.} Examining per-patient test set performance reveals substantial heterogeneity. Mean per-patient RMSE is 0.484 $\pm$ 0.303 (median 0.435), with a wide range from 0.014 to 6.05. This high variance reflects the clinical diversity in ICU populations: some patients with stable vitals are highly predictable, while others with rapidly changing conditions or sparse measurements prove challenging. The R² distribution (median 0.517, Q25 0.256, Q75 0.701) shows that for most patients the model explains 25-70\% of variance, which is reasonable given 85.7\% data sparsity and irregular sampling.
+
+\textbf{Qualitative Analysis.} Visual inspection of predictions vs. actual values (Figure~\ref{fig:raindrop_scatter}) shows predictions cluster along the diagonal, indicating good calibration overall. The model tends to underpredict extreme values (both high and low), a common pattern in regression tasks with MSE loss, which penalizes large errors quadratically and thus encourages conservative predictions. Error analysis reveals larger residuals for variables with sparser observations (e.g., TroponinI at 7.4\% coverage) compared to densely sampled vitals like heart rate (99\% coverage). This suggests the sensor graph benefits most when variables have sufficient temporal context for message passing.
+
+
+\subsection{GRU-D}
+
+\textbf{Model Description.} The GRU-D (Gated Recurrent Unit with Decay) model is a recurrent neural network designed specifically to handle missing values and irregular sampling in multivariate time series data. It extends the standard GRU architecture by incorporating decay mechanisms to exploit "informative missingness," which posits that the pattern of missing data can be correlated with the prediction target. The custom GRUD cell takes an augmented input at each time step, including the observed value, a mask indicating missingness, and the time interval ($\Delta$) since the last observation for each feature. A trainable input decay rate is used to dynamically impute missing values: as the time interval $\Delta$ increases, the imputed value for a missing feature gradually shifts from its last observed value towards a learned feature mean ($\mu$). A separate hidden decay rate is also applied to the previous hidden state to prevent long periods of missing data from unduly influencing the model's memory.
+
+\textbf{Implementation Details.} The implementation uses a 2-layer Multi Layer GRUD with a hidden size of 128, employing a custom GRUD cell at each layer. The data is first prepared by splitting patient records into a history (0-24 hours) for the encoder and a forecast (24-30 hours) for the decoder. The GRU-D input tensor is structured to contain the Data, Mask, and Delta dimensions: $\text{Batch Size} \times 3 \times \text{Number of Features} \times \text{Sequence Length}$. For deeper GRU-D layers, the original mask and delta are cyclically expanded to match the hidden state's increased feature dimension, ensuring the decay mechanism remains active. The model uses the final hidden state of the GRU-D encoder to initialize a standard GRU decoder that forecasts the 36 temporal features in the prediction window.
+
+\textbf{Training Configuration \& Curves}
+The model was trained for 10 epochs with an Adam optimizer ($\text{lr}=0.001$) and Mean Squared Error (MSE) as the loss function, using a batch size of 64. The training and validation loss curves, displayed in Figure (a), show consistent convergence for both sets, with the training loss remaining slightly higher than the validation loss, suggesting that the model was not overfitting. The validation metrics in Figure (b)  corroborate this trend, with the Validation $R^2$ steadily increasing from $0.3182$ in Epoch 1 to $0.4401$ in Epoch 10, while both MAE and RMSE decreased continuously. This continuous improvement indicates that the model could potentially benefit from being trained for more epochs.
+\begin{figure}[h!]
+    \centering
+    
+    % --- Subplot 1 ---
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{nawal_results/gru-d/train_val_loss_curves.png}
+        \caption{Training and validation loss curves}
+        \label{fig:train_loss}
+    \end{subfigure}
+    \hfill
+    % --- Subplot 2 ---
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{nawal_results/gru-d/val_metrics_over_time.png}
+        \caption{Validation metrics over time}
+        \label{fig:val_metrics}
+    \end{subfigure}
+
+    \caption{Performance visualization of GRU-D model: (a) loss convergence during training and (b) evolution of validation metrics.}
+    \label{fig:gru_d_results}
+\end{figure}
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.5\linewidth]{nawal_results/gru-d/pred_vs_actual.png}
+        \caption{Predicted vs. Actual Values}
+        \label{fig:placeholder}
+    \end{figure}
+
+\textbf{Challenges Encountered.} Overall, there was challenges in preparing the data for the multi-layer architecture, as the input specifically needed to expand the original mask and delta tensors in order to match the larger feature dimension of the deeper GRU-D hidden states. This step was necessary to ensure that the decay mechanism in the inner layers correctly utilizes the original missingness patterns.
+
+\textbf{Preliminary Results.}  The final performance on the test set yielded an $R^2$ of $0.4099$ and an MAE of $0.4560$, which indicates that the GRU-D model is capable of explaining approximately $41\%$ of the variance in the true temporal features during the forecast period. The scatter plot of Normalized Predicted vs. Actual values  shows a dense cluster of points tightly packed around the line of perfect prediction within the central range ($0.4$ to $0.6$ normalized actual value). However, observations at extreme values (near $0.0$, $0.8$, and $1.0$ on the actual axis) are noticeably pulled back towards the central prediction mass. This suggests that while the model handles typical data well, its current configuration struggles to confidently predict rare or extreme fluctuations, a common limitation in initial regression models.
+
+\textbf{Qualitative Analysis}
+The qualitative performance of the GRU-D model is best understood by analyzing the scatter plot of normalized predicted values against normalized actual values on the test set. The majority of the data points are densely clustered along the line of perfect prediction (the red dashed line), where the normalized actual values range from approximately 0.4 to 0.6. This heavy concentration suggests that the model is highly effective at predicting values within the typical, non-extreme range of the temporal features, demonstrating good precision and low error for these common observations. However, the model exhibits a noticeable weakness when predicting extreme values. Points corresponding to low actual values (near 0.0) and high actual values (near 0.8 or 1.0) are consistently predicted closer to the central cluster’s prediction range (around 0.5 to 0.6), indicating a bias toward the mean, or regression to the mean. This behavior is typical for regression models with a moderate $R^2$ value of 0.4099 which is where large errors could have occurred due to extreme events. The primary source of error could be due to the model's limited ability to generalize to the tails of the data distribution. These large sources of error could also be due to not performing hyperparameter tuning on the number of epochs, batch size and learning rate for the optimizer. While the small prediction errors within the dense central region contribute to the relatively low MAE of 0.4560, systematic errors for extreme values prevent the $R^2$ score from reaching higher levels. Future improvements should focus on enhancing the model’s capability to identify and forecast both high- and low-magnitude events.
+\subsection{SeFT}
+
+\textbf{Model Description.} SeFT (Set Functions for Time Series) \cite{horn2020seft} treats irregular multivariate time series as unordered sets of observations, leveraging the permutation-invariant properties of set functions. Unlike sequential models that impose ordering constraints, SeFT naturally handles irregularity by encoding each observation $(t_j, z_j, v_j)$ independently before aggregating them through attention mechanisms. The architecture consists of four key components: (1) \textit{Time embeddings} that map normalized timestamps to high-dimensional representations using sinusoidal positional encodings, capturing temporal patterns at multiple scales, (2) \textit{Observation encoder} (MLP) that transforms $(t, v, z)$ triplets into 128-dimensional latent embeddings, (3) \textit{Set encoder} using multi-head self-attention (4 heads, 3 layers) to build contextualized representations of the entire observation set, and (4) \textit{Query-based decoder} that predicts values at future $(t_q, v_q)$ query points by attending to the encoded observation set. This permutation-invariant design makes SeFT particularly suitable for sparse, irregularly-sampled clinical data where measurement order carries no inherent meaning.
+
+\textbf{Implementation Details.} We implemented SeFT from scratch based on the original paper, with modifications for our forecasting task. The model uses $d_{\text{model}}=128$, 4 attention heads, 3 transformer layers, and dropout 0.3, resulting in 705,729 parameters. All tensor operations were made device-agnostic to support CUDA, MPS, and CPU execution. The observation encoder embeds timestamps using sinusoidal functions and concatenates them with variable embeddings (learned 36-dimensional vectors) and normalized values. The decoder uses cross-attention to query the encoded observations, generating predictions for each $(t_q, v_q)$ pair in the forecast window.
+
+\textbf{Training Configuration \& Curves.} We trained for 36 epochs with batch size 64, learning rate $3 \times 10^{-4}$, and AdamW optimizer. Gradient clipping (max norm 1.0) was applied for stability. Figure~\ref{fig:seft_curves} shows training and validation loss curves. Training loss decreased steadily from 0.866 to 0.819 (MSE), while validation RMSE improved from 0.872 to 0.860 over 36 epochs. Both metrics plateaued after epoch 20, suggesting the model reached its representational capacity. The best checkpoint (epoch 26, RMSE 0.8596) was selected by validation RMSE.
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{luca_results/seft_training_curve.png}
+        \caption{Training and validation curves}
+        \label{fig:seft_train}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{luca_results/seft_prediction_vs_actual.png}
+        \caption{Predictions vs. actual values}
+        \label{fig:seft_pred}
+    \end{subfigure}
+    \caption{SeFT performance visualization: (a) loss convergence showing gradual improvement over 36 epochs, and (b) prediction scatter plot indicating systematic underestimation of extreme values.}
+    \label{fig:seft_curves}
+\end{figure}
+
+\textbf{Challenges Encountered.}
+
+
+\textit{Empty Forecast Window Handling:} Some patients had zero observations in the forecast window (24-30hrs) due to early discharge or death. Initial batching included these patients in history lists but not forecast lists, causing shape mismatches. We added validation to skip patients with \texttt{len(fore\_obs\_t) == 0} during batch construction, and implemented batch-level checks returning \texttt{None} for entirely empty batches. This reduced effective training data by $\sim$2\% but eliminated crashes.
+
+\textbf{Preliminary Results.} Table~\ref{tab:seft_results} summarizes SeFT's performance. The model achieved validation RMSE of 0.8596, MAE of 0.6265, and R² of 0.2610, explaining 26\% of variance in normalized vital signs. The RMSE/MAE ratio of 1.37 suggests the model is relatively robust to outliers compared to other baselines. Training set performance (RMSE 0.9012, R² 0.1889) was slightly worse than validation, indicating the model generalizes reasonably despite limited capacity.
+
+\begin{table}[h]
+\centering
+\caption{SeFT forecasting performance (36 epochs, best checkpoint at epoch 26)}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Split} & \textbf{RMSE} & \textbf{MAE} & \textbf{R²} & \textbf{RMSE/MAE} & \textbf{Loss (MSE)} \\
+\hline
+Training & 0.9012 & 0.6324 & 0.1889 & 1.425 & 0.8111 \\
+Validation & 0.8596 & 0.6265 & 0.2610 & 1.372 & 0.7389 \\
+\hline
+\end{tabular}
+\label{tab:seft_results}
+\end{table}
+
+\textbf{Qualitative Analysis.} Figure~\ref{fig:seft_pred} shows predictions cluster around the 0.5-0.6 range (normalized scale), indicating the model learns a conservative mean prediction strategy. This behavior is common in high-sparsity settings (85.7\% missing data) where the model defaults to population-level averages rather than patient-specific trajectories. The relatively low R² (0.26) reflects SeFT's limitation in capturing inter-variable dependencies—by treating observations as an unordered set, the model misses physiological correlations between simultaneously measured variables (e.g., HR-BP relationship). This motivates graph-based approaches that explicitly model variable interactions.
+
+\subsection{Latent ODE}
+
+\textbf{Model Description.}
+Latent ODE (Latent Ordinary Differential Equations) \cite{rubanova2019latent} is a generative model specifically designed for modeling continuous-time dynamics in irregular time series data. The model combines variational autoencoders (VAEs) with neural ordinary differential equations (ODEs) to learn a continuous latent representation that evolves smoothly over time. Unlike traditional RNN-based approaches that process discrete time steps, Latent ODE naturally handles irregularly-sampled observations by modeling the underlying continuous dynamics.
+
+The model consists of three main components: (1) an ODE-RNN encoder that processes historical observations in reverse chronological order to produce a latent state representation, (2) a variational layer that learns a probabilistic latent space via reparameterization, and (3) an ODE decoder that evolves the latent state forward in time and projects it to predicted observations.
+
+\textbf{Input Data.}
+The model receives irregular time series observations consisting of:
+\begin{itemize}
+    \item \textbf{History window:} Observations from the first 24 hours (normalized time $t \in [0, 0.5]$) containing all 41 clinical features
+    \item \textbf{Timestamps:} Irregularly-spaced observation times $\{t_1, t_2, \ldots, t_n\}$
+    \item \textbf{Values:} Clinical measurements at each timestamp, with shape $(T_{\text{hist}}, 41)$
+    \item \textbf{Masks:} Binary indicators of observed vs. missing values, with shape $(T_{\text{hist}}, 41)$
+    \item \textbf{Forecast window:} Target times from 24-30 hours (normalized time $t \in [0.5, 0.625]$) for the 36 temporal features
+\end{itemize}
+
+\textbf{Implementation Details.}
+
+\textit{Training Configuration:}
+\begin{itemize}
+    \item Optimizer: Adam with learning rate $1 \times 10^{-3}$
+    \item Learning rate scheduler: StepLR with step size 10, decay factor 0.9
+    \item Batch size: 1 (sequential processing due to variable-length sequences)
+    \item Number of epochs: 50
+    \item Loss function: Combined reconstruction loss (MSE) and KL divergence
+    $$\mathcal{L} = \mathcal{L}_{\text{recon}} + \beta \cdot \text{KL}(q(z|x) || p(z))$$
+    where $\beta = 0.01$ for KL annealing
+    \item Masked loss computation: Only observed values contribute to the loss
+\end{itemize}
+
+
+\subsection{WaveGNN}
+
+\textbf{Model Description.}
+WaveGNN (Wavelet-enhanced Graph Neural Network) is a hybrid architecture that combines Transformer-based temporal encoding with dynamic graph neural networks for irregular time series forecasting. The model addresses two key challenges: (1) capturing complex intra-series temporal patterns through self-attention mechanisms with temporal encodings, and (2) modeling inter-series dependencies through dynamically constructed feature graphs.
+
+Unlike traditional GNN approaches that assume static graph structures, WaveGNN learns adaptive adjacency matrices that capture both short-term correlations (via attention) and long-term dependencies (via learned embeddings). The integration of Time2Vec temporal encoding and learnable decay mechanisms enables the model to effectively handle irregularly-sampled observations.
+
+\textbf{Implementation Details.}
+
+\textit{Training Configuration:}
+\begin{itemize}
+    \item Optimizer: AdamW with learning rate $5 \times 10^{-4}$ and weight decay $1 \times 10^{-4}$
+    \item Learning rate scheduler: ReduceLROnPlateau with factor 0.5, patience 5 epochs
+    \item Batch size: 32
+    \item Number of epochs: 50
+    \item Loss function: Masked MSE (only observed values contribute)
+    \item Gradient clipping: Max norm 1.0 to prevent exploding gradients
+\end{itemize}
+
+\textit{Regularization Strategies:}
+\begin{itemize}
+    \item Dropout rate increased to 0.3 to reduce overfitting
+    \item Weight decay of $10^{-4}$ for L2 regularization
+    \item Lower learning rate ($5 \times 10^{-4}$) for stable convergence with full dataset
+\end{itemize}
+
+Results for WaveGNN is reported in \autoref{fig:WaveGNNLoss}, \autoref{fig:WaveGNN-res}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{Asal-results/Picture1.png}
+    \caption{Training/validation loss for WaveGNN}
+    \label{fig:WaveGNNLoss}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{Asal-results/wavegnn_per_feature_predictions.png}
+    \caption{Per-feature predictions vs actual values results for WaveGNN}
+    \label{fig:WaveGNN-res}
+\end{figure}
+
+\subsection{T-PatchGNN}
+
+\textbf{Model Description.} The T-PatchGNN (Temporal Patch Graph Neural Network) is a deep learning architecture designed for multivariate time series forecasting, specifically optimized to handle irregularly sampled data. Its core strength lies in simultaneously modeling both temporal dependencies within individual time series and spatial dependencies across multiple related variables. The model begins by dividing the input time series into fixed-length, non-overlapping segments called patches, which allow it to learn localized temporal patterns effectively. Within each patch, a custom Temporal-Temporal Convolutional Network (TTCN) captures fine-grained temporal dynamics, while a Transformer Encoder—enhanced with learned positional encodings and attention mechanisms—models long-range temporal dependencies across the sequence of patches. To capture spatial relationships, an adaptive Graph Neural Network (GNN) module is integrated within each encoder layer, learning time-adaptive graph structures that allow variable relationships to evolve dynamically with changing temporal contexts. Finally, the aggregated hidden representation from the encoder is fed into a multilayer perceptron (MLP) decoder, which projects the learned features to the target forecast horizon, generating accurate and context-aware time series predictions.
+
+\textbf{Implementation Details.} The T-PatchGNN model was implemented with a focus on preparing time series data for its hybrid architecture. A crucial first step involved developing a method to transform the raw sequences from our time sequence input into the required patched format. This handles the necessary padding or truncation of the historical data and prepares the input tensor X (values) to the shape $(\text{Batch}, M, L_{in}, N)$, where $M=8$ is the number of patches, $L_{in}=8$ is the patch length, and $N=41$ is the number of features. The model itself is composed of several key modules: the Temporal-Temporal Convolutional Network (TTCN) for localized feature extraction, a Transformer Encoder (with 2 layers and Learnable Time Encoding) for long-range dependencies, and an adaptive Graph Neural Network (GNN) module, which dynamically learns inter-variable relationships at each encoder layer. These modules work in sequence, with the GNN adapting the spatial relationships based on the temporal context provided by the Transformer, before the overall encoding is passed to a multilayer perceptron Decoder for the 12-step forecast.
+
+\textbf{Training Configuration \& Curves}
+The T-PatchGNN was configured with a hidden dimension of 64, utilized 2 encoder layers, and was trained for 10 epochs using the Adam optimizer (lr=0.001) and the MSE Loss. A batch size of 32 was employed for training and evaluation.
+\begin{figure}[h!]
+    \centering
+    
+    % --- Subplot 1 ---
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{nawal_results/t-patch/train_val_loss_curves.png}
+        \caption{Training and validation loss curves}
+        \label{fig:train_loss}
+    \end{subfigure}
+    \hfill
+    % --- Subplot 2 ---
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{nawal_results/t-patch/val_metrics_curves.png}
+        \caption{Validation metrics over time}
+        \label{fig:val_metrics}
+    \end{subfigure}
+
+    \caption{Performance visualization of T-Patch Model: (a) loss convergence during training and validation and (b) evolution of validation metrics over 10 epochs.}
+    \label{fig:t_patch_results}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{nawal_results/t-patch/predicted_vs_actual.png}
+    \caption{Predicted vs. Actual Values}
+    \label{fig:placeholder}
+\end{figure}
+The Loss Curves (Figure a) show the validation loss largely tracking the training loss, but with noticeable fluctuations rather than a smooth, monotonic decrease, particularly in epochs 3 and 8. This irregularity is reinforced by the Validation Metrics (Figure b), where all three metrics ($\text{MAE}$, $\text{RMSE}$, and $R^2$) exhibit significant instability, with the $R^2$ (green line) fluctuating widely between $0.424$ and $0.456$. This suggests the current learning rate and batch size configuration results in an unstable training process.
+
+\textbf{Challenges Encountered.} The key challenges encountered related to model convergence and data preparation. First, the complex sequence-to-patch transformation required a dedicated implementation to handle padding/truncation and correctly structure the multi-dimensional timestamp and mask inputs. Second, the training instability observed in the loss and metric curves represents a major challenge, suggesting that the model has not yet converged to an optimal state and requires further hyperparameter testing (such as adjusting the learning rate or batch size) to achieve a steadily decreasing loss trend.
+
+\textbf{Preliminary Results.} The T-PatchGNN model, trained with a hidden dimension of 64 and 2 encoder layers, achieved a final $R^2$ score of $0.4418$ on the test set. This means the model explains approximately $0.4418$ of the variance in the true temporal features.The key numerical results on the Test Set are:
+\begin{itemize}
+    \item $R^2$ = 0.4418
+    \item MAE = 0.4406
+    \item RMSE = 0.6656
+\end{itemize}. While the $\text{R}^2$ value is moderate, the overall performance is tempered by the model's observed training instability. The loss and metric curves show significant fluctuations, indicating that the model did not converge smoothly and likely has room for substantial improvement through hyperparameter tuning.
+
+\textbf{Qualitative Analysis}
+The qualitative performance of the model highlights a trade-off between accurately predicting common values and extreme values. The model demonstrates strong performance within a specific, high-confidence zone where most data points are densely clustered along the line of perfect prediction. This region corresponds to normalized actual values ranging approximately from 0.4 to 0.6, which indicates that the T-PatchGNN effectively captures and forecasts the most frequently occurring or typical patterns in the time series. The relatively low MAE is largely attributable to this strong precision within the central data distribution. However, the model also exhibits the classic limitation of regression-based methods—regression to the mean—when predicting outliers. Observations with very low (near 0.0) or very high (near 1.0) normalized actual values are consistently predicted closer to the central mass of predictions around 0.5 to 0.6, revealing a conservative bias that causes systematic under-prediction of high values and over-prediction of low values. This bias increases the MSE and RMSE, as the model prioritizes minimizing errors across the abundant central data points at the expense of accurately modeling rare, extreme events. Additionally, the observed training instability suggests that, while the T-PatchGNN demonstrates strong representational capacity—evidenced by a $R^2$ of 0.44. Therefore, the potential of the model has not been fully optimized to handle the complexity, irregularity, and noise present in the dataset.
+
+\subsection{KAFNet}
+
+\textbf{Model Description.} KAFNet (Kernel Aggregation and Frequency Attention Network) combines temporal kernel aggregation with frequency-domain attention for irregular time series forecasting. The model addresses irregularity through two complementary mechanisms: (1) \textit{Kernel Aggregation Module} that uses Radial Basis Function (RBF) kernels to weight historical observations based on their temporal distance from query points, enabling smooth interpolation across irregular intervals, and (2) \textit{Frequency Attention Module} that applies FFT to transform observations into the frequency domain, then uses multi-head attention to identify dominant temporal patterns (e.g., circadian rhythms in vital signs). Unlike SeFT's set-based approach, KAFNet explicitly models temporal structure through kernel smoothing while also capturing periodic patterns via frequency analysis. The architecture processes observations through learned variable embeddings, applies RBF-weighted aggregation with learnable bandwidth $\sigma$, performs frequency attention in the spectral domain, and decodes predictions using a query-based MLP.
+\textbf{Implementation Details.} We implemented KAFNet from scratch following the architectural principles of kernel-based temporal models. The model uses $d_{\text{model}}=128$, 4 attention heads, 3 layers, RBF kernel with learnable log-scale bandwidth parameter, and 32 query points for decoding, totaling 924,581 parameters. The RBF kernel weights observations as $w_{ij} = \exp(-0.5 (|t_i - t_j| / \sigma)^2)$, where $\sigma$ is learned per-layer to adapt to different temporal scales. The frequency attention module applies FFT to observation sequences (padded to nearest power of 2), computes self-attention in the frequency domain, and applies inverse FFT to return to time domain. This dual time-frequency representation enables the model to capture both local temporal patterns (via kernels) and global periodicities (via FFT).
+
+\textbf{Training Configuration \& Curves.} We trained for 36 epochs with batch size 64, learning rate $3 \times 10^{-4}$, AdamW optimizer, and gradient clipping (max norm 1.0). Training on Apple Silicon MPS took approximately 1.8 minutes per epoch. Figure~\ref{fig:kafnet_curves} shows consistent convergence over 36 epochs. Training loss decreased from 0.694 to 0.590 (MSE), while validation RMSE improved from 0.747 to 0.719. The best checkpoint (epoch 26, RMSE 0.7187) showed 16\% improvement over SeFT's baseline (RMSE 0.8596), demonstrating the value of explicit temporal modeling. The validation R² reached 0.48, explaining nearly twice the variance of SeFT (R² 0.26).
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{luca_results/kafnet_training_curve.png}
+        \caption{Training and validation curves}
+        \label{fig:kafnet_train}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{luca_results/kafnet_prediction_vs_actual.png}
+        \caption{Predictions vs. actual values}
+        \label{fig:kafnet_pred}
+    \end{subfigure}
+    \caption{KAFNet performance visualization: (a) smooth convergence showing steady improvement, and (b) predictions show better spread along diagonal compared to SeFT, indicating improved patient-specific forecasting.}
+    \label{fig:kafnet_curves}
+\end{figure}
+
+\textbf{Challenges Encountered.}
+
+\textit{Kernel Bandwidth Initialization:} Initial experiments with fixed RBF bandwidth $\sigma = 0.1$ (normalized time scale) resulted in poor performance (RMSE $>$ 0.85). The fixed bandwidth either over-smoothed dense measurement regions or under-smoothed sparse regions. We implemented learnable log-bandwidth parameters initialized to $\log(0.1)$, allowing the model to adapt kernel width per-layer. This improved validation RMSE by 18\% (0.85 $\rightarrow$ 0.72), demonstrating the importance of adaptive temporal smoothing.
+
+\textit{Empty Batch Handling:} Similar to SeFT, we encountered shape mismatches from patients with empty forecast windows. We replicated the validation logic to skip patients with \texttt{len(fore\_obs\_t) == 0} and return \texttt{None} for empty batches. Additionally, we added checks for \texttt{len(all\_times) == 0} to handle edge cases where batch filtering removed all samples.
+
+\textit{FFT Sequence Length Variability:} The frequency attention module requires fixed-length sequences for FFT, but patient observation counts vary widely (mean 77 $\pm$ 23 observations). We implemented dynamic padding to the nearest power of 2, with attention masking to ignore padded positions. This increased memory usage by $\sim$15\% but enabled efficient batch processing while maintaining correctness.
+
+\textbf{Preliminary Results.} Table~\ref{tab:kafnet_results} shows KAFNet substantially outperforms SeFT across all metrics. Validation RMSE of 0.7187 represents 16\% improvement over SeFT (0.8596), while R² of 0.4835 explains 85\% more variance (vs. SeFT's 0.2610). The RMSE/MAE ratio of 1.49 indicates reasonable robustness to outliers. Training set metrics (RMSE 0.7731, R² 0.3983) show slight overfitting, but the gap is modest, suggesting good generalization from kernel smoothing.
+
+\begin{table}[h]
+\centering
+\caption{KAFNet forecasting performance (36 epochs, best checkpoint at epoch 26)}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Split} & \textbf{RMSE} & \textbf{MAE} & \textbf{R²} & \textbf{RMSE/MAE} & \textbf{Loss (MSE)} \\
+\hline
+Training & 0.7731 & 0.5166 & 0.3983 & 1.497 & 0.6065 \\
+Validation & 0.7187 & 0.4821 & 0.4835 & 1.491 & 0.5165 \\
+\hline
+\end{tabular}
+\label{tab:kafnet_results}
+\end{table}
+
+\textbf{Qualitative Analysis.} Figure~\ref{fig:kafnet_pred} shows predictions exhibit better spread along the diagonal compared to SeFT's clustered predictions, indicating improved patient-specific forecasting. The kernel aggregation mechanism enables smooth interpolation between irregular measurements, while frequency attention captures periodic patterns like circadian vital sign fluctuations. However, extreme values (normalized $>$ 0.8 or $<$ 0.2) remain underestimated, suggesting the RBF kernel's Gaussian smoothing biases predictions toward local means. Variables with higher measurement frequency (HR, BP) showed better R² ($\sim$0.55) than sparse laboratory values (Troponin, Cholesterol: R² $\sim$ 0.25), highlighting the model's dependence on temporal density for effective kernel smoothing.
+
+% \subsection{Learnable Graph Structures}
+
+% \textbf{Motivation.} Hi-Patch currently defines graph connections based on patch structure (e.g., linking observations within a patch and neighboring patches). We propose to make the inter-variable graph learnable and context-dependent, inspired by RainDrop \cite{zhang2021graph} and WaveGNN \cite{hajisafi2024wavegnn}.
+
+% \textbf{Approach.} Introduce an attention mechanism to infer edge weights between variables or patches on the fly. At each graph layer, use a similarity function on node features to determine connectivity strengths instead of a fixed pre-set adjacency. This would allow the model to adapt to different patients or time periods, learning which variables are most relevant to connect.
+
+% \textbf{Expected Benefits.} Improved performance in heterogeneous patient data where the relationships between signals (e.g., which vital sign influences another) may vary case by case.
+
+% \textbf{Implementation Progress.}
+% \textit{[To be added]}
+
+% \subsection{Generative Modeling Component}
+
+% \textbf{Motivation.} Add a generative modeling component on top of Hi-Patch's predictive task to improve handling of missing data and enable synthetic trajectory generation.
+
+% \textbf{Approach.} Train a Variational Autoencoder (VAE) that uses Hi-Patch's latent representations to generate or impute time series data. Alongside forecasting the next values, the model is trained to reconstruct the existing time series (or to generate plausible missing values) through a decoder that tries to reproduce the input sequence. The VAE loss (reconstruction + KL divergence) is combined with the forecasting loss.
+
+% \textbf{Expected Benefits.}
+% \begin{itemize}
+%     \item Better predictive accuracy through richer learned representations
+%     \item Improved handling of missing data
+%     \item Ability to generate synthetic patient trajectories for data augmentation
+% \end{itemize}
+
+% \textbf{Implementation Progress.}
+% \textit{The implementation and experimentation with this model will be completed as a part of the final report deliverable. }
+
+\section{Results}\label{s:results}
+\begin{table}[h]
+\centering
+\caption{Train set performance}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Model} & \textbf{RMSE} & \textbf{MAE} & \textbf{R²} & \textbf{RMSE/MAE} & \textbf{Loss (MSE)} \\
+\hline
+GRU-D & - & - & - & - & - \\
+Latent ODE & - & - & - & - & - \\
+SeFT & 0.9012 & 0.6324 & 0.1889 & 1.425 & 0.8111 \\
+RainDrop & 0.638 & 0.371 & 0.479 & 1.719 & 0.371 \\
+WaveGNN & 0.61 & 0.502 & 0.382 & 1.2 & 0.6 \\
+T-PatchGNN & - & - & - & - & - \\
+KAFNet & 0.7731 & 0.5166 & 0.3983 & 1.497 & 0.6065 \\
+\hline
+\end{tabular}
+\label{tab:baseline_results}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Validation set performance}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Model} & \textbf{RMSE} & \textbf{MAE} & \textbf{R²} & \textbf{RMSE/MAE} & \textbf{Loss (MSE)} \\
+\hline
+GRU-D & 0.6844 & 0.4558 & 0.4401 & 1.5015 & 0.4683 \\
+Latent ODE & - & - & - & - & - \\
+SeFT & 0.8596 & 0.6265 & 0.2610 & 1.372 & 0.7389 \\
+RainDrop & 0.561 & 0.365 & 0.519 & 1.538 & 0.291 \\
+WaveGNN & 0.72 & 0.508 & 0.366 & 1.42 & 0.49 \\
+T-PatchGNN & 0.6630 & 0.4424 & 0.4513 & 1.4986 & 0.4395 \\
+KAFNet & 0.7187 & 0.4821 & 0.4835 & 1.491 & 0.5165 \\
+\hline
+\end{tabular}
+\label{tab:baseline_results}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Test set performance}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Model} & \textbf{RMSE} & \textbf{MAE} & \textbf{R²} & \textbf{RMSE/MAE} & \textbf{Loss (MSE)} \\
+\hline
+GRU-D & 0.7322 & 0.4560 & 0.4099 & 1.6057 & 0.5361 \\
+Latent ODE & - & - & - & - & - \\
+SeFT & - & - & - & - & - \\
+RainDrop & 0.596 & 0.368 & 0.494 & 1.621 & 0.337 \\
+WaveGNN & 0.75 & 0.54 & 0.335 & 1.4 & 0.643 \\
+T-PatchGNN & 0.6656 & 0.4406 & 0.4418 & 1.5106 & 0.4430 \\
+KAFNet & - & - & - & - & - \\
+\hline
+\end{tabular}
+\label{tab:baseline_results}
+\end{table}
+
+\section{Conclusion}\label{s:conclusion}
+
+
+\bibliographystyle{unsrt}
+\bibliography{references}
+
+\end{document}
